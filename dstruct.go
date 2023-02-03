@@ -1,0 +1,5 @@
+package dstruct
+
+func main() {
+
+}
