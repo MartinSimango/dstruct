@@ -1,5 +1,0 @@
-package dstruct
-
-func main() {
-
-}
