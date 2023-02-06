@@ -13,7 +13,6 @@ type DynamicStructModifier interface {
 	New() any
 	Get(field string) (any, error)
 	Set(field string, value any) error
-	GetField(field string) *Field
 }
 
 type FieldModifier func(*Field)
@@ -83,10 +82,6 @@ func (dm *DynamicStructModifierImpl) Set(field string, value any) error {
 	fieldValue.Set(reflect.ValueOf(value).Convert(fieldValue.Type()))
 
 	return nil
-}
-
-func (dm *DynamicStructModifierImpl) GetField(field string) *Field {
-	return dm.fieldMap[field].data
 }
 
 func (dm *DynamicStructModifierImpl) String() string {

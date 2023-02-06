@@ -53,12 +53,10 @@ func ExtendStruct(val any) *treeBuilderImpl {
 
 }
 func newBuilderFromNode(node *Node[Field]) *treeBuilderImpl {
-
 	return &treeBuilderImpl{
 		setValues: true,
 		root:      node,
 	}
-
 }
 
 func (dsb *treeBuilderImpl) AddField(name string, typ interface{}, tag string) Builder {
