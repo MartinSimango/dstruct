@@ -9,29 +9,36 @@ import (
 type FieldMap map[string]*Node[Field]
 
 type DynamicStructModifier interface {
+	// Instance returns a copy of the struct
 	Instance() any
+
+	// New returns a pointer to the struct
 	New() any
+
+	// Get gets the value of the struct field `field` and returns an error if the field is not found
 	Get(field string) (any, error)
+
+	// Set sets the value of the struct field `field` and returns an error if the field is not found.
+	//
+	// The program will panic if the type of value does not match the type of the struct field `field`.
 	Set(field string, value any) error
 }
 
 type FieldModifier func(*Field)
 
 type DynamicStructModifierImpl struct {
-	strct         any
-	fieldMap      FieldMap
-	fieldModifier FieldModifier
-	root          *Node[Field]
+	strct    any
+	fieldMap FieldMap
+	root     *Node[Field]
 }
 
 var _ DynamicStructModifier = &DynamicStructModifierImpl{}
 
-func newStruct(strct any, rootNode *Node[Field], fieldModifer FieldModifier) *DynamicStructModifierImpl {
+func newStruct(strct any, rootNode *Node[Field]) *DynamicStructModifierImpl {
 	dsm := &DynamicStructModifierImpl{
-		strct:         strct,
-		fieldMap:      make(FieldMap),
-		fieldModifier: fieldModifer,
-		root:          rootNode,
+		strct:    strct,
+		fieldMap: make(FieldMap),
+		root:     rootNode,
 	}
 	dsm.createFieldMap(rootNode)
 	return dsm
@@ -41,11 +48,6 @@ func (dm *DynamicStructModifierImpl) createFieldMap(rootNode *Node[Field]) {
 	for _, field := range rootNode.children {
 		dm.fieldMap[field.data.fqn] = field
 		dm.createFieldMap(field)
-		if !field.HasChildren() {
-			if dm.fieldModifier != nil {
-				dm.fieldModifier(field.data)
-			}
-		}
 	}
 }
 

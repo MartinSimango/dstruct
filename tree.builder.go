@@ -14,11 +14,12 @@ type treeBuilderImpl struct {
 
 var _ Builder = &treeBuilderImpl{}
 
-func NewBuilder() *treeBuilderImpl {
+func NewBuilder() Builder {
 	return newBuilderFromNode(&Node[Field]{
 		data: &Field{
 			Name:  "#root",
 			Value: reflect.ValueOf(nil),
+			fqn:   "#root",
 		},
 		children: make(map[string]*Node[Field]),
 	},
@@ -33,9 +34,9 @@ func CanExtend(val any) bool {
 	return ptrValue.Type().Kind() == reflect.Struct
 }
 
-func ExtendStruct(val any) *treeBuilderImpl {
+func ExtendStruct(val any) Builder {
 	// TODO check if val is a struct
-	b := NewBuilder()
+	b := NewBuilder().(*treeBuilderImpl)
 	value := reflect.ValueOf(val)
 
 	if !CanExtend(val) {
@@ -103,11 +104,7 @@ func (dsb *treeBuilderImpl) getNode(field string) *Node[Field] {
 }
 
 func (db *treeBuilderImpl) Build() DynamicStructModifier {
-	return db.BuildWithFieldModifier(nil)
-}
-
-func (db *treeBuilderImpl) BuildWithFieldModifier(fieldModifier FieldModifier) DynamicStructModifier {
-	return newStruct(db.buildStruct(db.root), db.root.Copy(), fieldModifier)
+	return newStruct(db.buildStruct(db.root), db.root.Copy())
 }
 
 func (db *treeBuilderImpl) buildStruct(tree *Node[Field]) any {
@@ -138,7 +135,7 @@ func (dsb *treeBuilderImpl) addFieldToTree(name string, typ interface{}, tag ref
 		jsonName:    strings.Split(tag.Get("json"), ",")[0],
 		StructIndex: root.data.SubFields,
 	}
-	field.fqn = getFQN(root.data.GetFieldName(), field.GetFieldName())
+	field.fqn = getFQN(root.data.GetFieldFQName(), field.Name)
 
 	root.AddNode(name, field)
 	root.data.SubFields++

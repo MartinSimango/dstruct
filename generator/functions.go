@@ -41,6 +41,7 @@ var (
 			min := parameters[0]
 			max := parameters[1]
 			paramKind := reflect.ValueOf(min).Elem().Kind()
+
 			switch paramKind {
 			case reflect.Int:
 				return generateNum(*min.(*int), *max.(*int))
@@ -81,9 +82,9 @@ var (
 
 		_func: func(parameters ...any) any {
 			generationConfig := parameters[0].(*GenerationConfig)
-			val := parameters[1].(reflect.Value)
-			setStructValues(val, generationConfig)
-			return val
+			field := parameters[1].(Field)
+			setStructValues(field, generationConfig)
+			return field.Value
 		},
 	}
 
@@ -91,8 +92,8 @@ var (
 		_func: func(parameters ...any) any {
 			generationConfig := parameters[0].(*GenerationConfig)
 
-			val := parameters[1].(reflect.Value)
-			sliceType := reflect.TypeOf(val.Interface()).Elem()
+			field := parameters[1].(Field)
+			sliceType := reflect.TypeOf(field.Value.Interface()).Elem()
 			min := generationConfig.sliceMinLength
 			max := generationConfig.sliceMaxLength
 
@@ -104,7 +105,13 @@ var (
 			case reflect.Struct:
 				sliceElement := reflect.New(sliceType)
 				for i := 0; i < len; i++ {
-					setStructValues(reflect.ValueOf(sliceElement.Interface()).Elem(), generationConfig)
+					newField := Field{
+						Name:  field.Name,
+						Value: reflect.ValueOf(sliceElement.Interface()).Elem(),
+						Tag:   field.Tag,
+					}
+					setStructValues(newField, generationConfig)
+
 					slice = reflect.Append(slice, sliceElement.Elem())
 
 				}
@@ -119,10 +126,10 @@ var (
 
 		_func: func(parameters ...any) any {
 			generationConfig := parameters[0].(*GenerationConfig)
-			val := parameters[1].(reflect.Value)
-			tags := parameters[2].(reflect.StructTag)
-			ptr := reflect.New(val.Type().Elem())
-			setValue(ptr.Elem(), tags, generationConfig)
+			field := parameters[1].(Field)
+			ptr := reflect.New(field.Value.Type().Elem())
+			field.Value = ptr.Elem()
+			setValue(field, generationConfig)
 			return ptr.Interface()
 
 		},
@@ -165,21 +172,21 @@ func GenerateNilValueFunc() GenerationFunction {
 	return f
 }
 
-func GenerateSliceFunc(generationConfig *GenerationConfig, val reflect.Value) GenerationFunction {
+func GenerateSliceFunc(generationConfig *GenerationConfig, field Field) GenerationFunction {
 	f := generateSlice
-	f.args = []any{generationConfig, val}
+	f.args = []any{generationConfig, field}
 	return f
 }
 
-func GenerateStructFunc(generationConfig *GenerationConfig, val reflect.Value) GenerationFunction {
+func GenerateStructFunc(generationConfig *GenerationConfig, field Field) GenerationFunction {
 	f := generateStruct
-	f.args = []any{generationConfig, val}
+	f.args = []any{generationConfig, field}
 	return f
 }
 
-func GeneratePointerValueFunc(generationConfig *GenerationConfig, val reflect.Value, tags reflect.StructTag) GenerationFunction {
+func GeneratePointerValueFunc(generationConfig *GenerationConfig, field Field) GenerationFunction {
 	f := generatePointerValue
-	f.args = []any{generationConfig, val, tags}
+	f.args = []any{generationConfig, field}
 	return f
 }
 
@@ -193,16 +200,16 @@ func GenerateDateTimeBetweenDatesFunc(startDate, endDate time.Time) GenerationFu
 	return f
 }
 
-func generationFunctionFromTags(kind reflect.Kind,
-	tags reflect.StructTag,
+func generationFunctionFromTags(field Field,
 	generationConfig *GenerationConfig) GenerationFunction {
+	kind := field.Value.Kind()
+	tags := field.Tag
 
 	if generationConfig.valueGenerationType == UseDefaults {
 		example, ok := tags.Lookup("example")
 		if !ok {
 			example, ok = tags.Lookup("default")
 		}
-
 		if ok {
 			switch kind {
 			case reflect.Int:
@@ -249,20 +256,13 @@ func generationFunctionFromTags(kind reflect.Kind,
 
 	gen_task, ok := tags.Lookup("gen_task")
 	if ok {
-		switch gen_task {
-		case "GenInt32":
-			param_1, _ := strconv.Atoi(tags.Get("gen_param_1"))
-			param_2, _ := strconv.Atoi(tags.Get("gen_param_2"))
-			p1 := int32(param_1)
-			p2 := int32(param_2)
-			return GenerateNumberFunc(&p1, &p2)
-
-		}
+		return getTask(gen_task, field.Name).getFunction()
 	}
 	return generationConfig.DefaultGenerationFunctions[kind]
 }
 
 type Field struct {
+	Name  string
 	Value reflect.Value
 	Tag   reflect.StructTag
 }

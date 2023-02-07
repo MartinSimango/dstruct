@@ -102,7 +102,7 @@ func (gc *GenerationConfig) SetIntMax(max int) *GenerationConfig {
 }
 
 func (gc *GenerationConfig) SetIntMin(min int) *GenerationConfig {
-	if min <= gc.intMin {
+	if min <= gc.intMax {
 		gc.intMin = min
 	}
 	return gc

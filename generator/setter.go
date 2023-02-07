@@ -4,24 +4,32 @@ import (
 	"reflect"
 )
 
-func setValue(val reflect.Value, tags reflect.StructTag, generationConfig *GenerationConfig) {
-	switch val.Kind() {
+func setValue(field Field, generationConfig *GenerationConfig) {
+	switch field.Value.Kind() {
 	case reflect.Struct:
-		setStructValues(val, generationConfig)
+		setStructValues(field, generationConfig)
 	case reflect.Slice:
-		panic("Unhandled setValue case")
+		panic("Unhandled setValue case slice ")
 	case reflect.Pointer:
-		panic("Unhandled setValue case")
+		panic("Unhandled setValue case ptr")
 	case reflect.Interface:
-		val.Set(reflect.Zero(val.Type()))
+		field.Value.Set(reflect.Zero(field.Value.Type()))
 	default:
-		val.Set(reflect.ValueOf(generationFunctionFromTags(val.Kind(), tags, generationConfig).Generate()))
+		field.Value.Set(reflect.ValueOf(generationFunctionFromTags(field, generationConfig).Generate()))
 	}
 }
 
-func setStructValues(config reflect.Value, generationConfig *GenerationConfig) {
-	for j := 0; j < config.NumField(); j++ {
-		setValue(config.Field(j), config.Type().Field(j).Tag, generationConfig)
+func setStructValues(field Field, generationConfig *GenerationConfig) {
+	for j := 0; j < field.Value.NumField(); j++ {
+		structField := Field{
+			Name:  field.Value.Type().Field(j).Name,
+			Value: field.Value.Field(j),
+			Tag:   field.Value.Type().Field(j).Tag,
+		}
+		if field.Name != "" {
+			field.Name = field.Name + "." + structField.Name
+		}
+		setValue(structField, generationConfig)
 	}
 
 }

@@ -21,7 +21,7 @@ func NewGenerationUnit(generationConfig *GenerationConfig,
 		field:            field,
 	}
 	gu.PreviousValueConfig = gu.GenerationConfig.GenerationValueConfig
-	gu.CurrentFunction = gu.getGenerationFunction() //GetGenerationFunction(gu.field, *gu.GenerationConfig)
+	gu.CurrentFunction = gu.getGenerationFunction()
 
 	return gu
 }
@@ -60,16 +60,16 @@ func (gu *GenerationUnit) getGenerationFunction() GenerationFunction {
 
 	switch gu.field.Value.Kind() {
 	case reflect.Slice:
-		return GenerateSliceFunc(gu.GenerationConfig, gu.field.Value)
+		return GenerateSliceFunc(gu.GenerationConfig, gu.field)
 	case reflect.Struct:
-		return GenerateStructFunc(gu.GenerationConfig, gu.field.Value)
+		return GenerateStructFunc(gu.GenerationConfig, gu.field)
 	case reflect.Ptr:
 		if gu.GenerationConfig.setNonRequiredFields {
-			return GeneratePointerValueFunc(gu.GenerationConfig, gu.field.Value, gu.field.Tag)
+			return GeneratePointerValueFunc(gu.GenerationConfig, gu.field)
 		} else {
 			return GenerateNilValueFunc()
 		}
 	}
-	return generationFunctionFromTags(gu.field.Value.Kind(), gu.field.Tag, gu.GenerationConfig)
+	return generationFunctionFromTags(gu.field, gu.GenerationConfig)
 
 }
