@@ -27,9 +27,7 @@ Features:
 
 ## How it works?
 
-Dstruct uses a tree to represent structs where nodes represent struct fields and children reprent struct fields subfields. This allows the struct to be easily modified. Once the tree stucture of the struct is built out the tree is converted into a dynamic struct with the aid of the reflect package. 
-
-
+Dstruct uses a tree to represent dynamic structs which allows these structs to easily to be manipulated. Nodes and their children represent struct fields and their subfields respectively. Once the tree structure of the struct is created the tree is converted into a dynamic struct using the reflect package. 
 
 
 Dstruct has 3 main interfaces that are implemented in order to allow these features: 
@@ -55,11 +53,12 @@ Dstruct has 3 main interfaces that are implemented in order to allow these featu
       New() any
       Get(field string) (any, error)
       Set(field string, value any) error
+      GetFields() map[string]field
   }
 
   ```
 
-3. ```dstruct.GeneratedStruct``` is responsible for generating struct values and is an extention of the DynamicStructModifier. A generated struct values
+3. ```dstruct.GeneratedStruct``` is responsible for generating struct values and is an extension of the DynamicStructModifier. A generated struct values
 are randomly generation based on Generation functions.
 
 ```go
@@ -89,7 +88,7 @@ func main() {
 		AddField("Job", "Software Developer", "").
 		RemoveField("Person.Age")
 
-	fmt.Printf("Sturct: %+v\n", structBuilder.Build().Instance())
+	fmt.Printf("Struct: %+v\n", structBuilder.Build().Instance())
 }
 
 ```
