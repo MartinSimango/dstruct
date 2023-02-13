@@ -2,25 +2,32 @@ package dstruct
 
 import "reflect"
 
-type Field struct {
-	Name        string
-	Tag         reflect.StructTag
-	Value       reflect.Value
-	Type        reflect.Type
-	jsonName    string
-	ptrDepth    int
-	fqn         string
-	StructIndex int
-	SubFields   int
+type field struct {
+	name              string
+	tag               reflect.StructTag
+	value             reflect.Value
+	typ               reflect.Type
+	pkgPath           string
+	anonymous         bool
+	jsonName          string
+	ptrDepth          int
+	fqn               string
+	structIndex       int
+	numberOfSubFields int
 }
 
-func (f Field) GetFieldName() string {
-	if f.jsonName == "" {
-		return f.Name
-	}
-	return f.jsonName
+func (f field) GetFieldName() string {
+	return f.name
 }
 
-func (f Field) GetFieldFQName() string {
+func (f field) GetValue() any {
+	return f.value.Interface()
+}
+
+func (f field) GetType() reflect.Type {
+	return f.value.Type()
+}
+
+func (f field) GetFieldFQName() string {
 	return f.fqn
 }
