@@ -40,21 +40,21 @@ func mergeStructs(left, right Builder, parentKind reflect.Kind) (any, error) {
 
 	for name, field := range right.(*treeBuilderImpl).root.children {
 
-		elementName := field.data.Name
+		elementName := field.data.name
 		cV := left.(*treeBuilderImpl).root.GetNode(name)
 
 		if cV == nil {
-			newStruct.AddField(elementName, field.data.Value.Interface(), string(field.data.Tag))
+			newStruct.AddField(elementName, field.data.value.Interface(), string(field.data.tag))
 			continue
 		}
-		if err := validateTypes(field.data.Value, cV.data.Value, field.data.fqn); err != nil {
+		if err := validateTypes(field.data.value, cV.data.value, field.data.fqn); err != nil {
 			return nil, err
 		}
 
-		if field.data.Value.Kind() == reflect.Slice {
-			vSliceType := getSliceType(field.data.Value)
-			cVSliceType := getSliceType(cV.data.Value)
-			if err := validateSliceTypes(vSliceType, cVSliceType, field.data.Value, cV.data.Value, field.data.fqn); err != nil {
+		if field.data.value.Kind() == reflect.Slice {
+			vSliceType := getSliceType(field.data.value)
+			cVSliceType := getSliceType(cV.data.value)
+			if err := validateSliceTypes(vSliceType, cVSliceType, field.data.value, cV.data.value, field.data.fqn); err != nil {
 				return nil, err
 			}
 			newStruct.RemoveField(field.data.fqn)
@@ -65,18 +65,18 @@ func mergeStructs(left, right Builder, parentKind reflect.Kind) (any, error) {
 				if err != nil {
 					return nil, err
 				}
-				newStruct.AddField(field.data.Name, newSliceTypeStruct, "")
+				newStruct.AddField(field.data.name, newSliceTypeStruct, "")
 			} else {
-				newStruct.AddField(field.data.Name, field.data.Value.Interface(), "")
+				newStruct.AddField(field.data.name, field.data.value.Interface(), "")
 			}
 
-		} else if field.data.Value.Kind() == reflect.Struct {
+		} else if field.data.value.Kind() == reflect.Struct {
 			updatedSchema, err := mergeStructs(left.GetField(name), right.GetField(name), reflect.Struct)
 			if err != nil {
 				return nil, err
 			}
 			newStruct.RemoveField(field.data.GetFieldName())
-			newStruct.AddField(field.data.Name, updatedSchema, string(field.data.Tag))
+			newStruct.AddField(field.data.name, updatedSchema, string(field.data.tag))
 		}
 
 	}

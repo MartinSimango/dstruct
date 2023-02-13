@@ -93,10 +93,10 @@ func Print(strct any) string {
 	return string(val)
 }
 
-func getGeneratorField(field *Field) generator.Field {
+func getGeneratorField(field *field) generator.Field {
 	return generator.Field{
 		Name:  field.fqn,
-		Value: field.Value,
-		Tag:   field.Tag,
+		Value: field.value,
+		Tag:   field.tag,
 	}
 }
