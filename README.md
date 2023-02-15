@@ -12,6 +12,32 @@ Features:
 * Generating struct values
 
 
+Limitations:
+* Dynamic structs with struct fields of type `any (interface {})` cannot be created. If you try
+extend or merge structs which have struct fields of type `any` their value must be set to a concrete type. 
+
+For example
+
+```go
+type A struct {
+	Field any
+}
+
+func main() {
+	// This will be fine
+	dstruct.ExtendStruct(A{Field: 2})
+
+	// This will panic as Field's type cannot be determined
+	dstruct.ExtendStruct(A{})
+
+	// This will also panic as Field's type cannot be determined
+	dstruct.NewBuilder().AddField("Field", nil, `json:"Field"`)
+
+}
+
+```
+
+
 ## Sections
 * [How it works?](https://github.com/MartinSimango/dstruct#how-it-works)
 * [Using the builder](https://github.com/MartinSimango/dstruct#using-the-builder)
