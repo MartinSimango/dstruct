@@ -6,6 +6,8 @@ import (
 	"sort"
 	"strings"
 	"unsafe"
+
+	"github.com/MartinSimango/dstruct/dreflect"
 )
 
 type treeBuilderImpl struct {
@@ -25,11 +27,12 @@ func creatRoot() *Node[field] {
 		children: make(map[string]*Node[field]),
 	}
 }
-func NewBuilder() Builder {
+
+func NewBuilder() *treeBuilderImpl {
 	return newBuilderFromNode(creatRoot(), false)
 }
 
-func CanExtend(val any) bool {
+func canExtend(val any) bool {
 	if val == nil {
 		return false
 	}
@@ -37,12 +40,12 @@ func CanExtend(val any) bool {
 	return ptrValue.Type().Kind() == reflect.Struct
 }
 
-func ExtendStruct(val any) Builder {
+func ExtendStruct(val any) *treeBuilderImpl {
 	// TODO check if val is a struct
-	b := NewBuilder().(*treeBuilderImpl)
+	b := NewBuilder()
 	value := reflect.ValueOf(val)
 
-	if !CanExtend(val) {
+	if !canExtend(val) {
 		panic(fmt.Sprintf("Cannot extend struct value of type %s", value.Type()))
 	}
 
@@ -139,7 +142,7 @@ func (db *treeBuilderImpl) Build() DynamicStructModifier {
 }
 
 func (db *treeBuilderImpl) buildStruct(tree *Node[field]) any {
-	structValue := reflect.ValueOf(getPointerToInterface(treeToStruct(tree)))
+	structValue := reflect.ValueOf(dreflect.GetPointerToInterface(treeToStruct(tree)))
 	tree.data.value = structValue
 	if db.setValues {
 		if structValue.Elem().Kind() == reflect.Ptr {
@@ -155,7 +158,7 @@ func (db *treeBuilderImpl) buildStruct(tree *Node[field]) any {
 func (dsb *treeBuilderImpl) addFieldToTree(name string, typ interface{}, pkgPath string, anonymous bool, tag reflect.StructTag, root *Node[field]) reflect.Type {
 	value := reflect.ValueOf(typ)
 	if !value.IsValid() {
-		panic(fmt.Sprintf("Cannot determine type of %s", name))
+		panic(fmt.Sprintf("Cannot determine type of field %s", name))
 	}
 
 	field := &field{
@@ -260,6 +263,7 @@ func addAnonymousSubfields(anonymousNode *Node[field]) {
 	parent := anonymousNode.parent
 	for parent != nil {
 		// Add anonymous node to parent
+		// fmt.Println(parent.data.name, parent.children[])
 		if parent.children[anonymousNode.data.name] == nil {
 			copyNode := anonymousNode.Copy()
 			copyNode.data.fqn = getFQN(parent.data.name, copyNode.data.name)
@@ -268,10 +272,13 @@ func addAnonymousSubfields(anonymousNode *Node[field]) {
 		}
 		// Add anonymous node children to parent
 		for k, v := range anonymousNode.children {
-			copyNode := v.Copy()
-			copyNode.data.fqn = getFQN(parent.data.name, copyNode.data.name)
-			resetNodeFieldsFQN(copyNode)
-			parent.children[k] = copyNode
+			if parent.children[k] == nil {
+				copyNode := v.Copy()
+				copyNode.data.fqn = getFQN(parent.data.name, copyNode.data.name)
+				resetNodeFieldsFQN(copyNode)
+				parent.children[k] = copyNode
+			}
+
 		}
 
 		parent = parent.parent
@@ -308,6 +315,11 @@ func setPointerFieldValue(field reflect.Value, currentNode *Node[field]) {
 func (dsb *treeBuilderImpl) addStructFields(strct reflect.Value, root *Node[field], ptrDepth int, anon bool) reflect.Type {
 	var structFields []reflect.StructField
 
+	// Create pointer to struct to allow unexported field values to be read in order
+	// to obtain their types
+	pointerToStruct := reflect.New(reflect.TypeOf(strct.Interface()))
+	pointerToStruct.Elem().Set(strct)
+
 	for i := 0; i < strct.NumField(); i++ {
 		fieldName := strct.Type().Field(i).Name
 		fieldTag := strct.Type().Field(i).Tag
@@ -315,14 +327,17 @@ func (dsb *treeBuilderImpl) addStructFields(strct reflect.Value, root *Node[fiel
 		if strct.Type().Field(i).IsExported() {
 			fieldValue = strct.Field(i).Interface()
 		} else {
-			// fieldValue = reflect.NewAt(strct.Field(i).Type(), unsafe.Pointer(root.data.value.Field(i).UnsafeAddr())).Elem().Interface()
-			// reflect.New(strct.Field(i).Type()).Elem().Interface()
-			fieldValue = reflect.New(strct.Field(i).Type()).Elem().Interface()
-
+			f := pointerToStruct.Elem().Field(i)
+			fieldValue = reflect.NewAt(f.Type(), unsafe.Pointer(f.UnsafeAddr())).Elem().Interface()
 		}
+
 		pkgPath := strct.Type().Field(i).PkgPath
 		anonymous := strct.Type().Field(i).Anonymous
 		fieldType := dsb.addFieldToTree(fieldName, fieldValue, pkgPath, anonymous, fieldTag, root)
+
+		if anonymous {
+			pkgPath = ""
+		}
 
 		structFields = append(structFields, reflect.StructField{
 			Name:      fieldName,
@@ -360,6 +375,7 @@ func (dsb *treeBuilderImpl) addPtrField(value reflect.Value, node *Node[field], 
 
 	switch ptrValue.Kind() {
 	case reflect.Struct:
+
 		return dsb.addStructFields(ptrValue, node, ptrDepth, anonymous)
 	}
 	return reflect.TypeOf(value.Interface())

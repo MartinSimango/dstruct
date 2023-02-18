@@ -3,6 +3,8 @@ package dstruct
 import (
 	"fmt"
 	"reflect"
+
+	"github.com/MartinSimango/dstruct/dreflect"
 )
 
 // MergeStructs merges two structs
@@ -52,8 +54,8 @@ func mergeStructs(left, right Builder, parentKind reflect.Kind) (any, error) {
 		}
 
 		if field.data.value.Kind() == reflect.Slice {
-			vSliceType := getSliceType(field.data.value)
-			cVSliceType := getSliceType(cV.data.value)
+			vSliceType := dreflect.GetSliceType(field.data.value)
+			cVSliceType := dreflect.GetSliceType(cV.data.value)
 			if err := validateSliceTypes(vSliceType, cVSliceType, field.data.value, cV.data.value, field.data.fqn); err != nil {
 				return nil, err
 			}
@@ -124,4 +126,20 @@ func validateSliceTypes(vSliceType, cVSliceType reflect.Type, v, cV reflect.Valu
 		}
 	}
 	return nil
+}
+
+type A struct {
+	N string
+}
+
+type B struct {
+	bake A
+}
+
+type C struct {
+	bake A
+}
+
+var P = B{
+	bake: A{N: "DF"},
 }

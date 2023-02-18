@@ -25,9 +25,13 @@ func (f field) GetValue() any {
 }
 
 func (f field) GetType() reflect.Type {
-	return f.value.Type()
+	return f.typ
 }
 
 func (f field) GetFieldFQName() string {
 	return f.fqn
+}
+
+func (f field) GetTag(t string) string {
+	return f.tag.Get(t)
 }

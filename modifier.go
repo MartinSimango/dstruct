@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"reflect"
 	"strings"
+
+	"github.com/MartinSimango/dstruct/dreflect"
 )
 
 type FieldMap map[string]*Node[field]
@@ -24,7 +26,7 @@ type DynamicStructModifier interface {
 	// The program will panic if the type of value does not match the type of the struct field `field`.
 	Set(field string, value any) error
 
-	// GetFields returns are map contaning all fields within a struct (including fields subfields)
+	// GetFields returns are map containing all fields within a struct (including fields subfields)
 	GetFields() map[string]field
 }
 
@@ -51,14 +53,8 @@ func newStruct(strct any, rootNode *Node[field]) *DynamicStructModifierImpl {
 }
 
 func (dm *DynamicStructModifierImpl) createFieldMap(rootNode *Node[field]) {
-	// fmt.Println("F: ", rootNode.data.name, rootNode.children)
-	// if rootNode.parent != nil {
-	// 	fmt.Println("F@: ", rootNode.parent.data.name)
-	// }
+
 	for _, field := range rootNode.children {
-		if field.data.name == "Age" {
-			fmt.Println("AFL: ", rootNode.data.name, field.data.fqn)
-		}
 		dm.fieldMap[field.data.fqn] = field
 		dm.fieldData[field.data.fqn] = *field.data
 		dm.createFieldMap(field)
@@ -69,7 +65,7 @@ func (dm *DynamicStructModifierImpl) New() any {
 	return dm.strct
 }
 func (dm *DynamicStructModifierImpl) Instance() any {
-	return getUnderlyingPointerValue(dm.strct)
+	return dreflect.GetUnderlyingPointerValue(dm.strct)
 }
 
 func (dm *DynamicStructModifierImpl) Get(field string) (any, error) {
@@ -79,29 +75,40 @@ func (dm *DynamicStructModifierImpl) Get(field string) (any, error) {
 	return dm.fieldMap[field].data.value.Interface(), nil
 }
 
+func isFieldExported(field string) bool {
+	fields := strings.Split(field, ".")
+
+	for _, f := range fields {
+		c := f[0]
+
+		if 'a' <= c && c <= 'z' || c == '_' {
+			return false
+		}
+	}
+	return true
+}
 func (dm *DynamicStructModifierImpl) Set(field string, value any) error {
 	if dm.fieldMap[field] == nil {
 		return fmt.Errorf("field %s does not exists in struct", field)
 	}
-	fields := strings.Split(field, ".")
-	c := fields[len(fields)-1][0]
 
-	if 'a' <= c && c <= 'z' || c == '_' {
+	if !isFieldExported(field) {
 		return fmt.Errorf("field %s is not exported", field)
 	}
 
 	fieldValue := dm.fieldMap[field].data.value
-	if !CanExtend(value) {
+	if !canExtend(value) {
 		if value == nil {
 			if !fieldValue.IsZero() {
 				fieldValue.Set(reflect.Zero(fieldValue.Type()))
 			}
 			return nil
 		}
-		fieldValue.Set(reflect.ValueOf(value))
+		fieldValue.Set(dreflect.Convert(reflect.ValueOf(value), fieldValue.Type()))
 		return nil
 	}
-	fieldValue.Set(reflect.ValueOf(value).Convert(fieldValue.Type()))
+	// fieldValue.Set(reflect.ValueOf(ExtendStruct(value).Build().Instance()))
+	fieldValue.Set(dreflect.Convert(reflect.ValueOf(value), fieldValue.Type()))
 
 	return nil
 }
