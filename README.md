@@ -13,6 +13,7 @@ Features:
 
 
 Limitations:
+* You cannot extend structs with unexported embedded fields
 * Dynamic structs with struct fields of type `any (interface {})` cannot be created. If you try
 extend or merge structs which have struct fields of type `any` their value must be set to a concrete type. 
 
