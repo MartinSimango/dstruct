@@ -25,6 +25,9 @@ test-cover-verbose:
 	go test -v $(DREFLECT_TEST)
 	go test -v $(DSTRUCT_TEST)
 
+test-bench:
+	go test $(TEST_FOLDER)/dstruct_test  -bench=.
+
 # co
 # go tool cover -html=coverage.out
 
