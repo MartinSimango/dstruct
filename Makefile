@@ -17,13 +17,21 @@ test:
 test-verbose:
 	go test -v ./...
 
-test-cover:
-	go test $(DREFLECT_TEST)
-	go test $(DSTRUCT_TEST)
+test-cover: test-dreflect test-dstruct
 
-test-cover-verbose:
+test-cover-verbose: test-dreflect-verbose test-dstruct-verbose
+
+test-dreflect-verbose:
 	go test -v $(DREFLECT_TEST)
+
+test-dstruct-verbose:
 	go test -v $(DSTRUCT_TEST)
+
+test-dreflect:
+	go test $(DREFLECT_TEST)
+
+test-dstruct:
+	go test $(DSTRUCT_TEST)
 
 test-bench:
 	go test $(TEST_FOLDER)/dstruct_test  -bench=.

@@ -18,10 +18,6 @@ func GetSliceType(value reflect.Value) reflect.Type {
 	return reflect.TypeOf(value.Interface()).Elem()
 }
 
-func GetPointerToSliceType(sliceType reflect.Type) any {
-	return reflect.New(sliceType).Elem().Interface()
-}
-
 // Convert extends the reflect.Convert function an proceeds to convert subtypes
 func Convert(value reflect.Value, t reflect.Type) reflect.Value {
 	defer func() {
@@ -33,16 +29,23 @@ func Convert(value reflect.Value, t reflect.Type) reflect.Value {
 	return convert(value, dst)
 }
 
+func convertibleTo(src, dst reflect.Type) bool {
+
+	return !src.ConvertibleTo(dst) &&
+		src.Kind() != reflect.Struct &&
+		src.Kind() != reflect.Slice &&
+		src.Kind() != reflect.Array &&
+		src.Kind() != reflect.Pointer
+}
+
 func convert(src reflect.Value, dst reflect.Value) reflect.Value {
 
-	if src.Kind() != dst.Kind() {
-		if src.Kind() < 1 || src.Kind() > 14 {
-			panic(fmt.Sprintf("dreflect.Convert: value of type %s cannot be converted to type %s", src.Type(), dst.Type()))
-		}
+	if convertibleTo(src.Type(), dst.Type()) {
+		panic(fmt.Sprintf("dreflect.Convert: value of type %s cannot be converted to type %s", src.Type(), dst.Type()))
 	}
+
 	switch src.Kind() {
 	case reflect.Struct:
-		// var structFields []reflect.StructField
 		newStruct := reflect.New(dst.Type()).Elem()
 		pointerToStruct := reflect.New(src.Type())
 		pointerToStruct.Elem().Set(src)
@@ -55,11 +58,16 @@ func convert(src reflect.Value, dst reflect.Value) reflect.Value {
 			reflect.NewAt(newField.Type(), unsafe.Pointer(newStruct.Field(i).UnsafeAddr())).
 				Elem().
 				Set(newField)
-
 		}
 		return newStruct
 	case reflect.Slice:
-		newSliceType, dstSliceType := getSliceArrayType(src, dst)
+
+		if src.IsNil() {
+			return reflect.Zero(dst.Type())
+		}
+		dstSliceType := GetSliceType(dst)
+
+		newSliceType := getSliceArrayType(src, dstSliceType)
 		newSlice := reflect.MakeSlice(reflect.SliceOf(newSliceType), src.Len(), src.Cap())
 
 		for i := 0; i < src.Len(); i++ {
@@ -70,7 +78,9 @@ func convert(src reflect.Value, dst reflect.Value) reflect.Value {
 		if src.Len() != dst.Len() {
 			panic(fmt.Sprintf("dreflect.Convert: value of type %s cannot be converted to type %s", src.Type(), dst.Type()))
 		}
-		newArrayType, dstSliceType := getSliceArrayType(src, dst)
+		dstSliceType := GetSliceType(dst)
+
+		newArrayType := getSliceArrayType(src, dstSliceType)
 		newArray := reflect.New(reflect.ArrayOf(src.Len(), newArrayType)).Elem()
 		for i := 0; i < src.Len(); i++ {
 			newArray.Index(i).Set(convert(src.Index(i), reflect.New(dstSliceType).Elem()))
@@ -98,8 +108,7 @@ func convert(src reflect.Value, dst reflect.Value) reflect.Value {
 	return src.Convert(dst.Type())
 }
 
-func getSliceArrayType(src reflect.Value, dst reflect.Value) (reflect.Type, reflect.Type) {
+func getSliceArrayType(src reflect.Value, dstSliceType reflect.Type) reflect.Type {
 	srcSliceType := GetSliceType(src)
-	dstSliceType := GetSliceType(dst)
-	return convert(reflect.New(srcSliceType).Elem(), reflect.New(dstSliceType).Elem()).Type(), dstSliceType
+	return convert(reflect.New(srcSliceType).Elem(), reflect.New(dstSliceType).Elem()).Type()
 }

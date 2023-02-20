@@ -263,7 +263,6 @@ func addAnonymousSubfields(anonymousNode *Node[field]) {
 	parent := anonymousNode.parent
 	for parent != nil {
 		// Add anonymous node to parent
-		// fmt.Println(parent.data.name, parent.children[])
 		if parent.children[anonymousNode.data.name] == nil {
 			copyNode := anonymousNode.Copy()
 			copyNode.data.fqn = getFQN(parent.data.name, copyNode.data.name)
