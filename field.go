@@ -12,8 +12,9 @@ type field struct {
 	jsonName          string
 	ptrDepth          int
 	fqn               string
-	structIndex       int
-	numberOfSubFields int
+	structIndex       *int
+	numberOfSubFields *int
+	isEmptyStruct     *bool
 }
 
 func (f field) GetFieldName() string {

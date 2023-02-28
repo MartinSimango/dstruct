@@ -1,6 +1,7 @@
 package dstruct_test
 
 import (
+	"fmt"
 	"reflect"
 	"testing"
 
@@ -25,6 +26,7 @@ func TestExtend(t *testing.T) {
 	type testStruct1 struct {
 		Age  int `json:"Age"`
 		Name string
+		Id   *string
 	}
 
 	type testStructEmbedded struct {
@@ -50,6 +52,7 @@ func TestExtend(t *testing.T) {
 		{"ExtendBool", true, true, false},
 		{"ExtendStructWithAnyNotSet", TestExtendData{}, true, TestExtendData{}},
 		{"ExtendStruct", testStruct1{Age: 20}, false, testStruct1{Age: 20}},
+		{"ExtendPointerToStruct", &testStruct1{Age: 20}, false, &testStruct1{Age: 20}},
 		{"ExtendStructWithEmbeddedField", testStructEmbedded{}, false, testStructEmbedded{}},
 		{"ExtendStructWithUnexportedEmbeddedField", testStructUnexportedEmbedded{}, true, testStructUnexportedEmbedded{}},
 	}
@@ -70,19 +73,123 @@ func TestExtend(t *testing.T) {
 
 }
 
-type AddFieldData struct {
+type TestAddFieldData struct {
 	name string
 }
 
 func TestAddField(t *testing.T) {
+	assert := assert.New(t)
 
 	b := dstruct.NewBuilder().
 		AddField("Age", 20, `json:"Age"`)
+
+	expected := struct {
+		Age int `json:"Age"`
+	}{20}
+
+	instance := b.Build().Instance()
+
+	assert.EqualValues(expected, dreflect.Convert(reflect.ValueOf(instance), reflect.TypeOf(expected)).Interface())
+}
+
+func TestAddEmbeddedField(t *testing.T) {
 	assert := assert.New(t)
 
-	output := b.Build().Instance()
+	type Embedded struct {
+		Age    int
+		Height float32
+	}
 
-	assert.True(reflect.DeepEqual(output, struct {
-		Age int `json:"Age"`
-	}{20}))
+	b := dstruct.NewBuilder().
+		AddEmbeddedField(Embedded{Age: 20}, `json:"Embedded"`)
+
+	expected := struct {
+		Embedded
+	}{Embedded: Embedded{Age: 20}}
+
+	instance := b.Build().Instance()
+
+	assert.EqualValues(expected, dreflect.Convert(reflect.ValueOf(instance), reflect.TypeOf(expected)).Interface())
+
+}
+
+func TestGetField(t *testing.T) {
+	assert := assert.New(t)
+
+	type Person struct {
+		Age  int
+		Name string
+	}
+
+	b := dstruct.NewBuilder().
+		AddEmbeddedField(Person{Age: 20, Name: "John"}, ``)
+
+	expected := struct {
+		Age  int
+		Name string
+		Cool int
+	}{20, "John", 2}
+
+	instance := b.GetField("Person").AddField("Cool", 2, "").Build()
+
+	assert.EqualValues(expected, dreflect.Convert(reflect.ValueOf(instance.Instance()), reflect.TypeOf(expected)).Interface())
+	// Original builder must also be altered and have new field
+	assert.EqualValues(expected, dreflect.Convert(reflect.ValueOf(b.GetField("Person").Build().Instance()), reflect.TypeOf(expected)).Interface())
+
+}
+
+// GetNewBuilderFromField returns a new builder instance where the subfield of the struct "field" is the root of the struct.
+
+func TestNewBuilderFromField(t *testing.T) {
+	assert := assert.New(t)
+
+	type Person struct {
+		Age  int
+		Name string
+	}
+
+	b := dstruct.NewBuilder().
+		AddEmbeddedField(Person{Age: 20, Name: "John"}, ``)
+
+	expected := struct {
+		Age  int
+		Name string
+		Cool int
+	}{20, "John", 2}
+
+	expectedOld := struct {
+		Age  int
+		Name string
+	}{20, "John"}
+
+	instance := b.NewBuilderFromField("Person").AddField("Cool", 2, "").Build()
+
+	assert.EqualValues(expected, dreflect.Convert(reflect.ValueOf(instance.Instance()), reflect.TypeOf(expected)).Interface())
+	// Original builder must NOT be altered and have new field
+	assert.EqualValues(expectedOld, dreflect.Convert(reflect.ValueOf(b.GetField("Person").Build().Instance()), reflect.TypeOf(expectedOld)).Interface())
+
+}
+
+func TestRemoveField(t *testing.T) {
+	assert := assert.New(t)
+
+	type Person struct {
+		Age  int
+		Name **struct{ Name string }
+	}
+	c := &struct{ Name string }{"Cool"}
+	b := dstruct.ExtendStruct(Person{Age: 20, Name: &c})
+
+	b.RemoveField("Name.Name")
+
+	d := &struct{}{}
+	expected := struct {
+		Age  int `json:"Age"`
+		Name **struct{}
+	}{20, &d}
+
+	instance := b.Build().Instance()
+	fmt.Printf("Instance: %+v\n", reflect.TypeOf(instance))
+
+	assert.EqualValues(expected, dreflect.Convert(reflect.ValueOf(instance), reflect.TypeOf(expected)).Interface())
 }

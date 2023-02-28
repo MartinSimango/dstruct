@@ -23,9 +23,26 @@ func TestConvert(t *testing.T) {
 		b *float32
 	}
 
+	type TestStructDifferentFieldName struct {
+		a_2 int
+		b   *float32
+	}
+
 	type TestStructCopy struct {
 		a int
 		b *float32
+	}
+
+	type TestStructMissingField struct {
+		a int
+	}
+
+	type A struct {
+		TestStruct TestStruct
+	}
+
+	type ACopy struct {
+		TestStruct TestStructCopy
 	}
 	var sliceInt []int
 	var sliceInt8 []int8
@@ -41,12 +58,12 @@ func TestConvert(t *testing.T) {
 		{"ConvertIntArrayToInt8Slice", [1]int{1}, reflect.TypeOf([1]int8{}), false, [1]int8{1}},
 		{"ConvertIntArrayToInt8DifferentLengths", [2]int{1}, reflect.TypeOf([1]int8{}), true, nil},
 		{"ConvertPointerToStruct", &TestStruct{a: 2}, reflect.TypeOf(&TestStructCopy{}), false, &TestStructCopy{a: 2}},
+		{"ConvertPointerToStruct", &A{}, reflect.TypeOf(&ACopy{}), false, &ACopy{}},
 
-		// TODO Mock dstruct.ExtendStruct
+		{"ConvertStructToTypeWithLessFields", TestStruct{a: 2}, reflect.TypeOf(TestStructMissingField{}), true, TestStructMissingField{a: 2}},
+		{"ConvertStructToTypeWhereFieldNameIsDifferent", TestStruct{a: 2}, reflect.TypeOf(TestStructDifferentFieldName{}), true, TestStructDifferentFieldName{a_2: 2}},
 		{"ConvertDStructToGoStruct", dstruct.ExtendStruct(TestStruct{a: 2}).Build().Instance(),
 			reflect.TypeOf(TestStruct{}), false, TestStruct{a: 2}},
-		{"ConvertGoStructToDStruct", TestStruct{a: 2},
-			reflect.TypeOf(TestStruct{}), false, dstruct.ExtendStruct(TestStruct{a: 2}).Build().Instance()},
 	}
 
 	assert := assert.New(t)
@@ -70,17 +87,11 @@ type TestGetPointerToInterfaceData struct {
 	expected    any
 }
 
-func newValue[T any](val T) *T {
-	v := new(T)
-	*v = val
-	return v
-}
-
 func TestGetPointerToInterface(t *testing.T) {
 	assert := assert.New(t)
-
+	value := 2
 	var tests = []TestGetPointerToInterfaceData{
-		{"GetPointerToBasicType", 2, false, new(int)},
+		{"GetPointerToBasicType", value, false, &value},
 		{"GetPointerToNil", nil, true, nil},
 		{"GetPointerToStruct", struct{}{}, false, &struct{}{}},
 	}
@@ -91,7 +102,7 @@ func TestGetPointerToInterface(t *testing.T) {
 				r := recover()
 				assert.Equal(test.shouldPanic, r != nil, r)
 			}()
-			assert.EqualValues(test.expected, dreflect.GetPointerToInterface(test.input))
+			assert.EqualValues(test.expected, dreflect.GetPointerOfValueType(test.input))
 		})
 	}
 }
@@ -128,20 +139,17 @@ func TestGetUnderlyingPointerValue(t *testing.T) {
 
 type TestGetSliceTypeData struct {
 	name        string
-	input       reflect.Value
+	input       any
 	shouldPanic bool
 	expected    reflect.Type
 }
 
 func TestGetSliceType(t *testing.T) {
-	var a []int
-	dreflect.GetSliceType(reflect.ValueOf(a))
-
 	assert := assert.New(t)
 
 	var tests = []TestGetSliceTypeData{
-		{"GetSliceTypeOfIntSlice", reflect.ValueOf([]int{}), false, reflect.TypeOf(2)},
-		{"GetSliceTypeOfNonSliceType", reflect.ValueOf(2), true, nil},
+		{"GetSliceTypeOfIntSlice", []int{}, false, reflect.TypeOf(2)},
+		{"GetSliceTypeOfNonSliceType", 2, true, nil},
 	}
 
 	for _, test := range tests {

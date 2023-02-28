@@ -21,6 +21,6 @@ type Builder interface {
 	// GetNewBuilderFromField returns a new builder instance where the subfield of the struct "field" is the root of the struct.
 	NewBuilderFromField(field string) Builder
 
-	// RemoveField removes a field from the struct.
-	RemoveField(name string) Builder
+	// RemoveField removes a field from the struct. If the field is a subfield of a nil struct it will not be removed.
+	RemoveField(field string) Builder
 }

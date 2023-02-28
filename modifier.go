@@ -107,7 +107,7 @@ func (dm *DynamicStructModifierImpl) Set(field string, value any) error {
 		fieldValue.Set(dreflect.Convert(reflect.ValueOf(value), fieldValue.Type()))
 		return nil
 	}
-	// fieldValue.Set(reflect.ValueOf(ExtendStruct(value).Build().Instance()))
+
 	fieldValue.Set(dreflect.Convert(reflect.ValueOf(value), fieldValue.Type()))
 
 	return nil
