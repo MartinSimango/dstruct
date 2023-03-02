@@ -1,7 +1,6 @@
 package dstruct_test
 
 import (
-	"fmt"
 	"reflect"
 	"testing"
 
@@ -189,7 +188,6 @@ func TestRemoveField(t *testing.T) {
 	}{20, &d}
 
 	instance := b.Build().Instance()
-	fmt.Printf("Instance: %+v\n", reflect.TypeOf(instance))
 
 	assert.EqualValues(expected, dreflect.Convert(reflect.ValueOf(instance), reflect.TypeOf(expected)).Interface())
 }
