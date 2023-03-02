@@ -14,6 +14,34 @@ Features:
 
 Limitations:
 * You cannot extend structs with unexported embedded fields
+* If a struct pointer is nil the struct's subfields won't be added to the dynamic struct
+For example
+```go
+
+type NilStructPointer struct {
+	Field  int
+}
+
+type Struct struct {
+	Field string
+	NilField *NilStructPointer
+}
+
+func main() {
+	// This will create a struct with fields 
+	// * Field
+	// * NilField 
+	dstruct.ExtendStruct(Struct{}).Build()
+
+	// However this will create a struct with fields 
+	// * Field
+	// * NilField 
+	// * NilField.Field
+	dstruct.ExtendStruct(Struct{NilField: &NilStructPointer{}}).Build()
+
+}
+
+```
 * Dynamic structs with struct fields of type `any (interface {})` cannot be created. If you try
 extend or merge structs which have struct fields of type `any` their value must be set to a concrete type. 
 
