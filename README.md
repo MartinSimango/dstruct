@@ -13,8 +13,9 @@ Features:
 
 
 Limitations:
-* You cannot extend structs with unexported embedded fields
-* If a struct pointer cannot be fully dereferenced then the struct's subfields won't be added to the dynamic struct
+* You cannot extend structs with unexported embedded fields.
+* If a struct pointer cannot be fully dereferenced then the struct's subfields won't be added to the dynamic struct.
+This is done mainly to avoid self referencing structs as these will create infinite node trees.
 For example
 ```go
 
