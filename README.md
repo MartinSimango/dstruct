@@ -14,7 +14,7 @@ Features:
 
 Limitations:
 * You cannot extend structs with unexported embedded fields
-* If a struct pointer is nil the struct's subfields won't be added to the dynamic struct
+* If a struct pointer cannot be fully dereferenced then the struct's subfields won't be added to the dynamic struct
 For example
 ```go
 
@@ -24,20 +24,26 @@ type NilStructPointer struct {
 
 type Struct struct {
 	Field string
-	NilField *NilStructPointer
+	NilField **NilStructPointer
 }
 
 func main() {
-	// This will create a struct with fields 
-	// * Field
-	// * NilField 
-	dstruct.ExtendStruct(Struct{}).Build()
+	// This will create a struct with fields  
+	// - Field
+	// - NilField 
+	// because we cannot fully dereference NilField. This is because although NilField is not nil *NilField is.
+	// 
+	var n *NilStructPointer
+	a := Struct{NilField: &n}
+	dstruct.ExtendStruct(a).Build()
 
 	// However this will create a struct with fields 
-	// * Field
-	// * NilField 
-	// * NilField.Field
-	dstruct.ExtendStruct(Struct{NilField: &NilStructPointer{}}).Build()
+	// - Field
+	// - NilField 
+	// - NilField.Field
+	n = &NilStructPointer{}
+	a = Struct{NilField: &n}
+	dstruct.ExtendStruct(a).Build()
 
 }
 
