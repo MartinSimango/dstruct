@@ -32,8 +32,7 @@ func main() {
 	// This will create a struct with fields  
 	// - Field
 	// - NilField 
-	// because we cannot fully dereference NilField. This is because although NilField is not nil *NilField is.
-	// 
+	// because we cannot fully dereference a.NilField (**a.NilField will cause the program to panic)
 	var n *NilStructPointer
 	a := Struct{NilField: &n}
 	dstruct.ExtendStruct(a).Build()
