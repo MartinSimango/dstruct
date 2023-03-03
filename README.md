@@ -15,12 +15,8 @@ Features:
 Limitations:
 * You cannot extend structs with unexported embedded fields.
 * If a struct pointer cannot be fully dereferenced then the struct's subfields won't be added to the dynamic struct. This is done mainly to avoid self referencing structs as these will create infinite node trees.
-
-
-```
 * Dynamic structs with struct fields of type `any (interface {})` cannot be created. If you try
 extend or merge structs which have struct fields of type `any` their value must be set to a concrete type. 
-```
 
 
 ## Sections
