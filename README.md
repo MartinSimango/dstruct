@@ -47,6 +47,7 @@ Dstruct has 3 main interfaces that are implemented in order to allow these featu
       Build() DynamicStructModifier
       GetField(name string) Builder
       GetFieldCopy(field string) Builder
+	  NewBuilderFromField(field string) Builder
       RemoveField(name string) Builder
   }
   ```
