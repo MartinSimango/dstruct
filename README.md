@@ -8,7 +8,7 @@ Features:
 * Adding new fields into struct
 * Removing existing fields from struct
 * Modifying field values in structs
-* Reading field values in strucst
+* Reading field values in structs
 * Generating struct values
 
 
