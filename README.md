@@ -44,6 +44,7 @@ Dstruct has 3 main interfaces that are implemented in order to allow these featu
   ```go
   type Builder interface {
       AddField(name string, value interface{}, tag string) Builder
+      AddEmbeddedField(value interface{}, tag string) Builder
       Build() DynamicStructModifier
       GetField(name string) Builder
       GetFieldCopy(field string) Builder
