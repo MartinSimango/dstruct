@@ -6,43 +6,53 @@ import (
 
 type GenerationFunction interface {
 	Generate() any
+	Copy(*GenerationConfig) GenerationFunction
 }
 
-type GenerationFunc struct {
-	_func func(...any) any
-	args  []any
+type GenerationFunctionImpl struct {
+	*GenerationConfig
+	basicGenerationFunction
 }
 
-var _ GenerationFunction = &GenerationFunc{}
-
-func (f GenerationFunc) Generate() any {
-	return f._func(f.args...)
+func (bsf basicGenerationFunction) Generate() any {
+	return bsf._func(bsf.args...)
 }
 
-type GenerationDefaults map[reflect.Kind]GenerationFunction
+func (bsf basicGenerationFunction) Copy(*GenerationConfig) GenerationFunction {
+	return bsf
+}
 
-func NewGenerationConfig() (generationConfig *GenerationConfig) {
-	generationConfig = &GenerationConfig{
-		GenerationValueConfig: GenerationValueConfig{
-			valueGenerationType:  UseDefaults,
-			setNonRequiredFields: false,
-		},
-		DefaultGenerationFunctions: make(GenerationDefaults),
-		SliceConfig:                defaultSliceConfig(),
-		IntConfig:                  defaultIntConfig(),
-		FloatConfig:                defaultFloatConfig(),
-		DateConfig:                 defaultDateConfig(),
+type DefaultGenerationFunctionType map[reflect.Kind]GenerationFunction
+
+type Generator struct {
+	GenerationConfig           *GenerationConfig
+	DefaultGenerationFunctions DefaultGenerationFunctionType
+}
+
+func NewGenerationFunctionDefaults(gc *GenerationConfig) *Generator {
+
+	defaultGenerationFunctions := make(DefaultGenerationFunctionType)
+	defaultGenerationFunctions[reflect.String] = GenerateFixedValueFunc("string")
+	defaultGenerationFunctions[reflect.Ptr] = GenerateNilValueFunc()
+	defaultGenerationFunctions[reflect.Int] = GenerateNumberFunc(gc.intMin, gc.intMax, gc)
+	defaultGenerationFunctions[reflect.Int64] = GenerateNumberFunc(gc.intMin, gc.intMax, gc)
+	defaultGenerationFunctions[reflect.Int32] = GenerateNumberFunc(gc.int32Min, gc.int32Max, gc)
+	defaultGenerationFunctions[reflect.Float64] = GenerateNumberFunc(gc.float64Min, gc.float64Max, gc)
+	defaultGenerationFunctions[reflect.Bool] = GenerateBoolFunc()
+
+	return &Generator{
+		GenerationConfig:           gc,
+		DefaultGenerationFunctions: defaultGenerationFunctions,
 	}
-	generationConfig.initGenerationFunctionDefaults()
-	return
 }
 
-func (gc *GenerationConfig) initGenerationFunctionDefaults() {
-	gc.DefaultGenerationFunctions[reflect.String] = GenerateFixedValueFunc("string")
-	gc.DefaultGenerationFunctions[reflect.Ptr] = GenerateNilValueFunc()
-	gc.DefaultGenerationFunctions[reflect.Int64] = GenerateNumberFunc(&gc.int64Min, &gc.int64Max)
-	gc.DefaultGenerationFunctions[reflect.Int32] = GenerateNumberFunc(&gc.int32Min, &gc.int32Max)
-	gc.DefaultGenerationFunctions[reflect.Int] = GenerateNumberFunc(&gc.intMin, &gc.intMax)
-	gc.DefaultGenerationFunctions[reflect.Float64] = GenerateNumberFunc(&gc.float64Min, &gc.float64Max)
-	gc.DefaultGenerationFunctions[reflect.Bool] = GenerateBoolFunc()
+func (gd *Generator) Copy() (generationDefaults *Generator) {
+	generationDefaults = &Generator{
+		DefaultGenerationFunctions: make(DefaultGenerationFunctionType),
+		GenerationConfig:           gd.GenerationConfig.Clone(),
+	}
+	for k, v := range gd.DefaultGenerationFunctions {
+		generationDefaults.DefaultGenerationFunctions[k] = v.Copy(generationDefaults.GenerationConfig)
+	}
+	return
 }

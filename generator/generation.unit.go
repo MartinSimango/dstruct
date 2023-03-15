@@ -5,71 +5,70 @@ import (
 )
 
 type GenerationUnit struct {
-	GenerationConfig    *GenerationConfig
-	PreviousValueConfig GenerationValueConfig
-	CurrentFunction     GenerationFunction
-	count               int
-	latestValue         any
-	field               Field
+	PreviousValueConfig   GenerationValueConfig
+	CurrentFunction       GenerationFunction
+	UpdateCurrentFunction bool
+	Field                 *GeneratedField
+	count                 int
+	latestValue           any
+	generationConfig      *GenerationConfig
 }
 
-func NewGenerationUnit(generationConfig *GenerationConfig,
-	field Field,
-) *GenerationUnit {
+func NewGenerationUnit(field *GeneratedField) *GenerationUnit {
 	gu := &GenerationUnit{
-		GenerationConfig: generationConfig,
-		field:            field,
+		Field:            field,
+		generationConfig: field.Generator.GenerationConfig,
 	}
-	gu.PreviousValueConfig = gu.GenerationConfig.GenerationValueConfig
+	gu.PreviousValueConfig = gu.generationConfig.GenerationValueConfig
 	gu.CurrentFunction = gu.getGenerationFunction()
-
 	return gu
 }
 
 func (gu *GenerationUnit) Generate() any {
 	// check if important fields have changed and then regenerate the currentfunction
-	if gu.configChanged(gu.PreviousValueConfig) {
+	if gu.configChanged(gu.PreviousValueConfig) || gu.UpdateCurrentFunction {
 		gu.CurrentFunction = gu.getGenerationFunction()
+
+		gu.UpdateCurrentFunction = false
 	}
-	if gu.GenerationConfig.valueGenerationType == GenerateOnce && gu.count > 0 {
+	if gu.generationConfig.valueGenerationType == GenerateOnce && gu.count > 0 {
 		return gu.latestValue
 	}
-
 	gu.latestValue = gu.CurrentFunction.Generate()
-	gu.PreviousValueConfig = gu.GenerationConfig.GenerationValueConfig
+	gu.PreviousValueConfig = gu.generationConfig.GenerationValueConfig
 	gu.count++
 	return gu.latestValue
 }
 
 func (gu *GenerationUnit) configChanged(previousConfig GenerationValueConfig) bool {
 
-	return gu.GenerationConfig.valueGenerationType != previousConfig.valueGenerationType ||
-		gu.GenerationConfig.setNonRequiredFields != previousConfig.setNonRequiredFields
+	return gu.generationConfig.valueGenerationType != previousConfig.valueGenerationType ||
+		gu.generationConfig.setNonRequiredFields != previousConfig.setNonRequiredFields
 }
 
 func (gu *GenerationUnit) SetGenerationDefaultFunctionForKind(kind reflect.Kind, function GenerationFunction) {
-	if gu.GenerationConfig.DefaultGenerationFunctions[kind] == nil {
+	if gu.Field.Generator.DefaultGenerationFunctions[kind] == nil {
 		return
 	}
-	gu.GenerationConfig.DefaultGenerationFunctions[kind] = function
+	gu.Field.Generator.DefaultGenerationFunctions[kind] = function
 	gu.CurrentFunction = gu.getGenerationFunction()
 
 }
 
 func (gu *GenerationUnit) getGenerationFunction() GenerationFunction {
 
-	switch gu.field.Value.Kind() {
+	switch gu.Field.Value.Kind() {
 	case reflect.Slice:
-		return GenerateSliceFunc(gu.GenerationConfig, gu.field)
+		return GenerateSliceFunc(gu.Field)
 	case reflect.Struct:
-		return GenerateStructFunc(gu.GenerationConfig, gu.field)
+		return GenerateStructFunc(gu.Field)
 	case reflect.Ptr:
-		if gu.GenerationConfig.setNonRequiredFields {
-			return GeneratePointerValueFunc(gu.GenerationConfig, gu.field)
+		if gu.generationConfig.setNonRequiredFields {
+			return GeneratePointerValueFunc(gu.Field)
 		} else {
 			return GenerateNilValueFunc()
 		}
 	}
-	return generationFunctionFromTags(gu.field, gu.GenerationConfig)
+	return gu.Field.getGenerationFunction()
 
 }

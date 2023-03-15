@@ -2,6 +2,10 @@ package generator
 
 import "time"
 
+type ConfigType interface {
+	IntConfig | FloatConfig | SliceConfig
+}
+
 type IntConfig struct {
 	int64Min int64
 	int64Max int64
@@ -77,11 +81,30 @@ type GenerationValueConfig struct {
 
 type GenerationConfig struct {
 	GenerationValueConfig
-	DefaultGenerationFunctions GenerationDefaults
 	SliceConfig
 	IntConfig
 	FloatConfig
 	DateConfig
+}
+
+func NewGenerationConfig() (generationConfig *GenerationConfig) {
+	generationConfig = &GenerationConfig{
+		GenerationValueConfig: GenerationValueConfig{
+			valueGenerationType:  UseDefaults,
+			setNonRequiredFields: false,
+		},
+		SliceConfig: defaultSliceConfig(),
+		IntConfig:   defaultIntConfig(),
+		FloatConfig: defaultFloatConfig(),
+		DateConfig:  defaultDateConfig(),
+	}
+	return
+}
+
+func (gc *GenerationConfig) Clone() (config *GenerationConfig) {
+	config = &GenerationConfig{}
+	*config = *gc
+	return
 }
 
 func (gc *GenerationConfig) SetNonRequiredFields(val bool) *GenerationConfig {
