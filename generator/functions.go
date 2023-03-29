@@ -12,10 +12,10 @@ type (
 	generateFixedValueFunc[T any] GenerationFunctionImpl
 )
 
-var _ GenerationFunction = generateNumberFunc[int]{}
+var _ GenerationFunction = &generateNumberFunc[int]{}
 
 func (gn generateNumberFunc[N]) Copy(newConfig *GenerationConfig) GenerationFunction {
-	return GenerateNumberFunc(*gn.args[0].(*N), *gn.args[1].(*N), newConfig)
+	return GenerateNumberFunc(*gn.args[0].(*N), *gn.args[1].(*N)).SetGenerationConfig(newConfig)
 }
 func assign[T any](configMin, configMax *T, min, max T) (*T, *T) {
 	*configMin = min
@@ -23,30 +23,38 @@ func assign[T any](configMin, configMax *T, min, max T) (*T, *T) {
 	return configMin, configMax
 }
 
-func GenerateNumberFunc[n number](min, max n, generationConfig *GenerationConfig) GenerationFunction {
+func (gf *generateNumberFunc[n]) GetGenerationConfig() *GenerationConfig {
+	return gf.GenerationConfig
+}
 
-	f := generateNumberFunc[n]{
-		GenerationConfig:        generationConfig,
-		basicGenerationFunction: generateNumber,
-	}
-
-	paramKind := reflect.ValueOf(new(n)).Elem().Kind()
+func (gf *generateNumberFunc[n]) SetGenerationConfig(generationConfig *GenerationConfig) GenerationFunction {
+	min, max := *gf.args[0].(*n), *gf.args[1].(*n)
+	paramKind := reflect.ValueOf(min).Kind()
 	var param_1, param_2 any
 	switch paramKind {
 	case reflect.Int:
-		param_1, param_2 = assign(&f.intMin, &f.intMax, int(min), int(max))
+		param_1, param_2 = assign(&generationConfig.intMin, &generationConfig.intMax, int(min), int(max))
 	case reflect.Int32:
-		param_1, param_2 = assign(&f.int32Min, &f.int32Max, int32(min), int32(max))
+		param_1, param_2 = assign(&generationConfig.int32Min, &generationConfig.int32Max, int32(min), int32(max))
 	case reflect.Int64:
-		param_1, param_2 = assign(&f.int64Min, &f.int64Max, int64(min), int64(max))
+		param_1, param_2 = assign(&generationConfig.int64Min, &generationConfig.int64Max, int64(min), int64(max))
 	case reflect.Float32:
-		param_1, param_2 = assign(&f.float32Min, &f.float32Max, float32(min), float32(max))
+		param_1, param_2 = assign(&generationConfig.float32Min, &generationConfig.float32Max, float32(min), float32(max))
 	case reflect.Float64:
-		param_1, param_2 = assign(&f.float64Min, &f.float64Max, float64(min), float64(max))
+		param_1, param_2 = assign(&generationConfig.float64Min, &generationConfig.float64Max, float64(min), float64(max))
 	default:
 		panic(fmt.Sprintf("Invalid number type: %s", paramKind))
 	}
-	f.args = []any{param_1, param_2}
+	gf.args = []any{param_1, param_2}
+	return gf
+}
+
+func GenerateNumberFunc[n number](min, max n) GenerationFunction {
+	f := &generateNumberFunc[n]{
+		basicGenerationFunction: generateNumber,
+	}
+
+	f.args = []any{&min, &max}
 	return f
 }
 
@@ -89,7 +97,7 @@ type generateStructFunc struct {
 
 func GenerateStructFunc(field *GeneratedField) GenerationFunction {
 
-	f := generateStructFunc{
+	f := &generateStructFunc{
 		GenerationFunctionImpl: GenerationFunctionImpl{
 			GenerationConfig:        field.Generator.GenerationConfig,
 			basicGenerationFunction: generateStruct,

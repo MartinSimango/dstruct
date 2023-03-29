@@ -7,6 +7,8 @@ import (
 type GenerationFunction interface {
 	Generate() any
 	Copy(*GenerationConfig) GenerationFunction
+	GetGenerationConfig() *GenerationConfig
+	SetGenerationConfig(*GenerationConfig) GenerationFunction
 }
 
 type GenerationFunctionImpl struct {
@@ -22,6 +24,14 @@ func (bsf basicGenerationFunction) Copy(*GenerationConfig) GenerationFunction {
 	return bsf
 }
 
+func (bsf basicGenerationFunction) GetGenerationConfig() *GenerationConfig {
+	return nil
+}
+
+func (bsf basicGenerationFunction) SetGenerationConfig(*GenerationConfig) GenerationFunction {
+	return bsf
+}
+
 type DefaultGenerationFunctionType map[reflect.Kind]GenerationFunction
 
 type Generator struct {
@@ -34,10 +44,10 @@ func NewGenerationFunctionDefaults(gc *GenerationConfig) *Generator {
 	defaultGenerationFunctions := make(DefaultGenerationFunctionType)
 	defaultGenerationFunctions[reflect.String] = GenerateFixedValueFunc("string")
 	defaultGenerationFunctions[reflect.Ptr] = GenerateNilValueFunc()
-	defaultGenerationFunctions[reflect.Int] = GenerateNumberFunc(gc.intMin, gc.intMax, gc)
-	defaultGenerationFunctions[reflect.Int64] = GenerateNumberFunc(gc.intMin, gc.intMax, gc)
-	defaultGenerationFunctions[reflect.Int32] = GenerateNumberFunc(gc.int32Min, gc.int32Max, gc)
-	defaultGenerationFunctions[reflect.Float64] = GenerateNumberFunc(gc.float64Min, gc.float64Max, gc)
+	defaultGenerationFunctions[reflect.Int] = GenerateNumberFunc(gc.intMin, gc.intMax).SetGenerationConfig(gc)
+	defaultGenerationFunctions[reflect.Int64] = GenerateNumberFunc(gc.int64Min, gc.int64Max).SetGenerationConfig(gc)
+	defaultGenerationFunctions[reflect.Int32] = GenerateNumberFunc(gc.int32Min, gc.int32Max).SetGenerationConfig(gc)
+	defaultGenerationFunctions[reflect.Float64] = GenerateNumberFunc(gc.float64Min, gc.float64Max).SetGenerationConfig(gc)
 	defaultGenerationFunctions[reflect.Bool] = GenerateBoolFunc()
 
 	return &Generator{

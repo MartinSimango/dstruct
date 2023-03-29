@@ -1,6 +1,8 @@
 package generator
 
-import "time"
+import (
+	"time"
+)
 
 type ConfigType interface {
 	IntConfig | FloatConfig | SliceConfig

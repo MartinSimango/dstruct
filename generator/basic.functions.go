@@ -128,7 +128,7 @@ var (
 			field := parameters[0].(*GeneratedField)
 			ptr := reflect.New(field.Value.Type().Elem())
 			field.Value = ptr.Elem()
-			field.GenerateValue()
+			field.SetValue()
 			return ptr.Interface()
 
 		},

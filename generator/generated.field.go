@@ -13,7 +13,7 @@ type GeneratedField struct {
 	Generator *Generator
 }
 
-func (field *GeneratedField) GenerateValue() {
+func (field *GeneratedField) SetValue() {
 
 	switch field.Value.Kind() {
 	case reflect.Struct:
@@ -40,7 +40,7 @@ func (field *GeneratedField) setStructValues() {
 		if field.Name != "" {
 			field.Name = field.Name + "." + structField.Name
 		}
-		structField.GenerateValue()
+		structField.SetValue()
 	}
 
 }

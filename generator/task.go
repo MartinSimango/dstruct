@@ -74,7 +74,7 @@ func (t Task) getFunction() GenerationFunction {
 	switch t.Name {
 	case GenInt32:
 		params := t.GenInt32Params()
-		return GenerateNumberFunc(params.min, params.max, NewGenerationConfig())
+		return GenerateNumberFunc(params.min, params.max)
 	}
 	panic(fmt.Sprintf("Invalid task name '%s' for field %s ", t.Name, t.FieldName))
 }
