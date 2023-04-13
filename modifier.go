@@ -28,6 +28,12 @@ type DynamicStructModifier interface {
 
 	// GetFields returns are map containing all fields within a struct (including fields subfields)
 	GetFields() map[string]field
+
+	// Update updates the struct's underlying tree to represent that of the strct's value
+	Update()
+
+	// Apply is a combination of Set and Update. Update is not called if Apply fails.
+	Apply(field string, value any) error
 }
 
 type FieldModifier func(*field)
@@ -120,4 +126,16 @@ func (dm *DynamicStructModifierImpl) GetFields() map[string]field {
 func (dm *DynamicStructModifierImpl) String() string {
 	val, _ := json.MarshalIndent(dm.strct, "", "\t")
 	return string(val)
+}
+
+func (dm *DynamicStructModifierImpl) Update() {
+	*dm = *ExtendStruct(dm.strct).Build().(*DynamicStructModifierImpl)
+}
+
+func (dm *DynamicStructModifierImpl) Apply(field string, value any) error {
+	if err := dm.Set(field, value); err != nil {
+		return err
+	}
+	dm.Update()
+	return nil
 }

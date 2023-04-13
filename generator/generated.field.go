@@ -14,14 +14,13 @@ type GeneratedField struct {
 }
 
 func (field *GeneratedField) SetValue() {
-
 	switch field.Value.Kind() {
 	case reflect.Struct:
-		field.setStructValues()
-	case reflect.Slice:
-		panic("Unhandled setValue case slice ")
+		GenerateStructFunc(field).Generate()
 	case reflect.Pointer:
-		panic("Unhandled setValue case ptr")
+		GeneratePointerValueFunc(field).Generate()
+	case reflect.Slice:
+		field.Value.Set(reflect.ValueOf(GenerateSliceFunc(field).Generate()))
 	case reflect.Interface:
 		field.Value.Set(reflect.Zero(field.Value.Type()))
 	default:

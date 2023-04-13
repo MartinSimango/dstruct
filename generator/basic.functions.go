@@ -24,6 +24,65 @@ func generateNum[n number](min, max n) n {
 	return min + (n(rand.Float64() * float64(max+1-min)))
 }
 
+func init() {
+	generateSlice = basicGenerationFunction{
+		_func: func(parameters ...any) any {
+
+			field := parameters[0].(*GeneratedField)
+			generationConfig := field.Generator.GenerationConfig
+			sliceType := reflect.TypeOf(field.Value.Interface()).Elem()
+			min := generationConfig.sliceMinLength
+			max := generationConfig.sliceMaxLength
+
+			len := min + (int(rand.Float64() * float64(max+1-min)))
+			sliceOfElementType := reflect.SliceOf(sliceType)
+			slice := reflect.MakeSlice(sliceOfElementType, 0, 1024)
+			sliceElement := reflect.New(sliceType)
+
+			for i := 0; i < len; i++ {
+				newField := GeneratedField{
+					Name:      fmt.Sprintf("%s#%d", field.Name, i),
+					Value:     reflect.ValueOf(sliceElement.Interface()).Elem(),
+					Tag:       field.Tag,
+					Generator: field.Generator.Copy(),
+				}
+				newField.SetValue()
+				slice = reflect.Append(slice, sliceElement.Elem())
+			}
+
+			return slice.Interface()
+
+		},
+	}
+
+	generatePointerValue = basicGenerationFunction{
+
+		_func: func(parameters ...any) any {
+			field := parameters[0].(*GeneratedField)
+			if !field.Generator.GenerationConfig.setNonRequiredFields {
+				return nil
+			}
+			field.Value.Set(reflect.New(field.Value.Type().Elem()))
+			fieldPointerValue := *field
+			fieldPointerValue.Value = field.Value.Elem()
+			fieldPointerValue.SetValue()
+
+			field.Value.Elem().Set(fieldPointerValue.Value)
+			return field.Value.Interface()
+
+		},
+	}
+
+	generateStruct = basicGenerationFunction{
+
+		_func: func(parameters ...any) any {
+			field := parameters[0].(*GeneratedField)
+			field.setStructValues()
+			return field.Value
+		},
+	}
+}
+
 var (
 	generateStringFromRegex basicGenerationFunction = basicGenerationFunction{
 		_func: func(parameters ...any) any {
@@ -78,61 +137,11 @@ var (
 		},
 	}
 
-	generateStruct basicGenerationFunction = basicGenerationFunction{
+	generateStruct basicGenerationFunction
 
-		_func: func(parameters ...any) any {
-			field := parameters[0].(*GeneratedField)
-			field.setStructValues()
-			return field.Value
-		},
-	}
+	generateSlice basicGenerationFunction
 
-	generateSlice basicGenerationFunction = basicGenerationFunction{
-		_func: func(parameters ...any) any {
-
-			field := parameters[0].(*GeneratedField)
-			generationConfig := field.Generator.GenerationConfig
-			sliceType := reflect.TypeOf(field.Value.Interface()).Elem()
-			min := generationConfig.sliceMinLength
-			max := generationConfig.sliceMaxLength
-
-			len := min + (int(rand.Float64() * float64(max+1-min)))
-			sliceOfElementType := reflect.SliceOf(sliceType)
-			slice := reflect.MakeSlice(sliceOfElementType, 0, 1024)
-
-			switch sliceType.Kind() {
-			case reflect.Struct:
-				sliceElement := reflect.New(sliceType)
-				for i := 0; i < len; i++ {
-					newField := GeneratedField{
-						Name:      field.Name,
-						Value:     reflect.ValueOf(sliceElement.Interface()).Elem(),
-						Tag:       field.Tag,
-						Generator: field.Generator.Copy(),
-					}
-					newField.setStructValues()
-
-					slice = reflect.Append(slice, sliceElement.Elem())
-
-				}
-			}
-
-			return slice.Interface()
-
-		},
-	}
-
-	generatePointerValue basicGenerationFunction = basicGenerationFunction{
-
-		_func: func(parameters ...any) any {
-			field := parameters[0].(*GeneratedField)
-			ptr := reflect.New(field.Value.Type().Elem())
-			field.Value = ptr.Elem()
-			field.SetValue()
-			return ptr.Interface()
-
-		},
-	}
+	generatePointerValue basicGenerationFunction
 
 	generateDateTime basicGenerationFunction = basicGenerationFunction{
 		_func: func(parameters ...any) any {

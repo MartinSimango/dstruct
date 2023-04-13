@@ -28,9 +28,9 @@ func (gu *GenerationUnit) Generate() any {
 	// check if important fields have changed and then regenerate the currentfunction
 	if gu.configChanged(gu.PreviousValueConfig) || gu.UpdateCurrentFunction {
 		gu.CurrentFunction = gu.getGenerationFunction()
-
 		gu.UpdateCurrentFunction = false
 	}
+
 	if gu.generationConfig.valueGenerationType == GenerateOnce && gu.count > 0 {
 		return gu.latestValue
 	}
@@ -56,18 +56,13 @@ func (gu *GenerationUnit) SetGenerationDefaultFunctionForKind(kind reflect.Kind,
 }
 
 func (gu *GenerationUnit) getGenerationFunction() GenerationFunction {
-
 	switch gu.Field.Value.Kind() {
 	case reflect.Slice:
 		return GenerateSliceFunc(gu.Field)
 	case reflect.Struct:
 		return GenerateStructFunc(gu.Field)
 	case reflect.Ptr:
-		if gu.generationConfig.setNonRequiredFields {
-			return GeneratePointerValueFunc(gu.Field)
-		} else {
-			return GenerateNilValueFunc()
-		}
+		return GeneratePointerValueFunc(gu.Field)
 	}
 	return gu.Field.getGenerationFunction()
 

@@ -86,7 +86,9 @@ func (gs *GeneratedStructImpl) GetFieldGenerator(field string) *generator.Genera
 func (gs *GeneratedStructImpl) SetFieldDefaultGenerationFunction(field string,
 	generationFunction generator.GenerationFunction) {
 	kind := gs.fieldMap[field].data.GetType().Kind()
-	gs.generatedFields[field].Field.Generator.DefaultGenerationFunctions[kind] = generationFunction
+	generator := gs.generatedFields[field].Field.Generator
+	generator.DefaultGenerationFunctions[kind] = generationFunction
+	generationFunction.SetGenerationConfig(generator.GenerationConfig)
 	gs.generatedFields[field].UpdateCurrentFunction = true
 }
 

@@ -119,6 +119,15 @@ func (gc *GenerationConfig) SetValueGenerationType(valueGenerationType ValueGene
 	return gc
 }
 
+func (gc *GenerationConfig) SetIntRange(min, max int) *GenerationConfig {
+	if min > max {
+		return gc
+	}
+	gc.intMin, gc.intMax = min, max
+	return gc
+}
+
+// deprecated: use SetIntRange
 func (gc *GenerationConfig) SetIntMax(max int) *GenerationConfig {
 	if max >= gc.intMin {
 		gc.intMax = max
