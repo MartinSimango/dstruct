@@ -7,10 +7,26 @@ import (
 )
 
 type GeneratedField struct {
-	Name      string
-	Value     reflect.Value
-	Tag       reflect.StructTag
-	Generator *Generator
+	Name        string
+	Value       reflect.Value
+	Tag         reflect.StructTag
+	Generator   *Generator
+	ParentTypes map[string]bool
+}
+
+func NewGeneratedField(fqn string,
+	value reflect.Value,
+	tag reflect.StructTag,
+	generator *Generator,
+	parentTypes map[string]bool) *GeneratedField {
+	g := &GeneratedField{
+		Name:        fqn,
+		Value:       value,
+		Tag:         tag,
+		Generator:   generator,
+		ParentTypes: parentTypes,
+	}
+	return g
 }
 
 func (field *GeneratedField) SetValue() {
@@ -30,18 +46,24 @@ func (field *GeneratedField) SetValue() {
 
 func (field *GeneratedField) setStructValues() {
 	for j := 0; j < field.Value.NumField(); j++ {
-		structField := GeneratedField{
-			Name:      field.Value.Type().Field(j).Name,
-			Value:     field.Value.Field(j),
-			Tag:       field.Value.Type().Field(j).Tag,
-			Generator: field.Generator.Copy(),
+		structField := &GeneratedField{
+			Name:        field.Value.Type().Field(j).Name,
+			Value:       field.Value.Field(j),
+			Tag:         field.Value.Type().Field(j).Tag,
+			Generator:   field.Generator.Copy(),
+			ParentTypes: field.ParentTypes,
 		}
+		fmt.Println(field.Name, field.ParentTypes)
+		parentStructPkgPath := field.Value.Type().String()
+		if structField.ParentTypes[parentStructPkgPath] {
+			panic(fmt.Sprintf("generator: recursive definition found: Field '%s' of type '%s' is a recursive definition and this field cannot be generated", structField.Name, structField.Value.Type().String()))
+		}
+		structField.ParentTypes[parentStructPkgPath] = true
 		if field.Name != "" {
 			field.Name = field.Name + "." + structField.Name
 		}
 		structField.SetValue()
 	}
-
 }
 
 func (field *GeneratedField) getGenerationFunction() GenerationFunction {

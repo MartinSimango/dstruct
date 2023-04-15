@@ -41,11 +41,13 @@ func init() {
 
 			for i := 0; i < len; i++ {
 				newField := GeneratedField{
-					Name:      fmt.Sprintf("%s#%d", field.Name, i),
-					Value:     reflect.ValueOf(sliceElement.Interface()).Elem(),
-					Tag:       field.Tag,
-					Generator: field.Generator.Copy(),
+					Name:        fmt.Sprintf("%s#%d", field.Name, i),
+					Value:       reflect.ValueOf(sliceElement.Interface()).Elem(),
+					Tag:         field.Tag,
+					Generator:   field.Generator.Copy(),
+					ParentTypes: field.ParentTypes,
 				}
+
 				newField.SetValue()
 				slice = reflect.Append(slice, sliceElement.Elem())
 			}

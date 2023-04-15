@@ -29,8 +29,8 @@ type GeneratedStruct interface {
 
 type GeneratedStructImpl struct {
 	*DynamicStructModifierImpl
-	generatedFields            GenerationFields
-	defaultGenerationFunctions *generator.Generator
+	generatedFields GenerationFields
+	generator       *generator.Generator
 }
 
 var _ GeneratedStruct = &GeneratedStructImpl{}
@@ -40,11 +40,11 @@ func NewGeneratedStruct(val any) *GeneratedStructImpl {
 }
 
 func NewGeneratedStructWithConfig(val any,
-	defaultGenerationFunctions *generator.Generator) *GeneratedStructImpl {
+	gen *generator.Generator) *GeneratedStructImpl {
 	generatedStruct := &GeneratedStructImpl{
-		DynamicStructModifierImpl:  ExtendStruct(val).Build().(*DynamicStructModifierImpl),
-		generatedFields:            make(GenerationFields),
-		defaultGenerationFunctions: defaultGenerationFunctions,
+		DynamicStructModifierImpl: ExtendStruct(val).Build().(*DynamicStructModifierImpl),
+		generatedFields:           make(GenerationFields),
+		generator:                 gen,
 	}
 	generatedStruct.populateGeneratedFields()
 	return generatedStruct
@@ -53,11 +53,19 @@ func NewGeneratedStructWithConfig(val any,
 func (gs *GeneratedStructImpl) populateGeneratedFields() {
 
 	for name, field := range gs.fieldMap {
+		fmt.Println("Field: ", field.data.fqn)
+
 		if field.HasChildren() {
 			continue
 		}
+		// fmt.Println("OK: ", field.data.value.Type().String(), field.data.fqn)
 		gs.generatedFields[name] = generator.NewGenerationUnit(
-			getGeneratorField(field.data, gs.defaultGenerationFunctions.Copy()))
+			generator.NewGeneratedField(field.data.fqn,
+				field.data.value,
+				field.data.tag,
+				gs.generator.Copy(),
+				map[string]bool{field.data.value.Type().String(): true},
+			))
 	}
 }
 
