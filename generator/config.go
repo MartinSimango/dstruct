@@ -76,9 +76,15 @@ const (
 	UseDefaults
 )
 
+type recursiveDefinition struct {
+	Allow bool
+	Count uint
+}
+
 type GenerationValueConfig struct {
 	valueGenerationType  ValueGenerationType
 	setNonRequiredFields bool
+	recursiveDefinition  recursiveDefinition
 }
 
 type GenerationConfig struct {
@@ -94,6 +100,10 @@ func NewGenerationConfig() (generationConfig *GenerationConfig) {
 		GenerationValueConfig: GenerationValueConfig{
 			valueGenerationType:  UseDefaults,
 			setNonRequiredFields: false,
+			recursiveDefinition: recursiveDefinition{
+				Allow: false,
+				Count: 1,
+			},
 		},
 		SliceConfig: defaultSliceConfig(),
 		IntConfig:   defaultIntConfig(),
@@ -107,6 +117,15 @@ func (gc *GenerationConfig) Clone() (config *GenerationConfig) {
 	config = &GenerationConfig{}
 	*config = *gc
 	return
+}
+
+func (gc *GenerationConfig) AllowRecursion(a bool) *GenerationConfig {
+	gc.recursiveDefinition.Allow = a
+	return gc
+}
+func (gc *GenerationConfig) SetRecursionCount(r uint) *GenerationConfig {
+	gc.recursiveDefinition.Count = r
+	return gc
 }
 
 func (gc *GenerationConfig) SetNonRequiredFields(val bool) *GenerationConfig {

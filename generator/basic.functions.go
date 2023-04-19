@@ -34,19 +34,22 @@ func init() {
 			min := generationConfig.sliceMinLength
 			max := generationConfig.sliceMaxLength
 
-			len := min + (int(rand.Float64() * float64(max+1-min)))
+			len := generateNum(min, max)
 			sliceOfElementType := reflect.SliceOf(sliceType)
 			slice := reflect.MakeSlice(sliceOfElementType, 0, 1024)
 			sliceElement := reflect.New(sliceType)
 
 			for i := 0; i < len; i++ {
-				newField := GeneratedField{
-					Name:        fmt.Sprintf("%s#%d", field.Name, i),
-					Value:       reflect.ValueOf(sliceElement.Interface()).Elem(),
-					Tag:         field.Tag,
-					Generator:   field.Generator.Copy(),
-					ParentTypes: field.ParentTypes,
+				newField := &GeneratedField{
+					Name:      fmt.Sprintf("%s#%d", field.Name, i),
+					Value:     reflect.ValueOf(sliceElement.Interface()).Elem(),
+					Tag:       field.Tag,
+					Generator: field.Generator.Copy(),
+					Parent:    field,
 				}
+
+				// P.Love.Parray#0
+				// newField.Generator.GenerationConfig.SetRecursionCount(2)
 
 				newField.SetValue()
 				slice = reflect.Append(slice, sliceElement.Elem())
@@ -64,12 +67,18 @@ func init() {
 			if !field.Generator.GenerationConfig.setNonRequiredFields {
 				return nil
 			}
+			// field.SetValue()
+
 			field.Value.Set(reflect.New(field.Value.Type().Elem()))
 			fieldPointerValue := *field
 			fieldPointerValue.Value = field.Value.Elem()
+			fieldPointerValue.PointerValue = &field.Value
 			fieldPointerValue.SetValue()
 
-			field.Value.Elem().Set(fieldPointerValue.Value)
+			if field.Value.Elem().CanSet() {
+				field.Value.Elem().Set(fieldPointerValue.Value)
+			}
+
 			return field.Value.Interface()
 
 		},
@@ -80,7 +89,7 @@ func init() {
 		_func: func(parameters ...any) any {
 			field := parameters[0].(*GeneratedField)
 			field.setStructValues()
-			return field.Value
+			return field.Value.Interface()
 		},
 	}
 }

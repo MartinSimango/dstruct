@@ -91,7 +91,6 @@ func (dsb *treeBuilderImpl) AddEmbeddedField(value interface{}, tag string) Buil
 	ptrValue, _ := getPtrValue(reflect.ValueOf(value), 0)
 	name := reflect.TypeOf(ptrValue.Interface()).Name()
 	dsb.addFieldToTree(name, value, "", true, reflect.StructTag(tag), dsb.root)
-
 	return dsb
 }
 
@@ -269,6 +268,7 @@ func setStructFieldValues(strct reflect.Value, root *Node[field]) {
 				Set(currentNode.data.value)
 		}
 		currentNode.data.value = field
+		// fmt.Println("C: ", currentNode.data.anonymous, currentNode.data.fqn)
 
 		if currentNode.data.anonymous {
 			addAnonymousSubfields(currentNode)
@@ -278,6 +278,7 @@ func setStructFieldValues(strct reflect.Value, root *Node[field]) {
 
 }
 
+// TODO ensure anonymous nodes don't propagate up past none embedded fields
 func addAnonymousSubfields(anonymousNode *Node[field]) {
 
 	parent := anonymousNode.parent
@@ -286,7 +287,7 @@ func addAnonymousSubfields(anonymousNode *Node[field]) {
 		if parent.children[anonymousNode.data.name] == nil {
 			copyNode := anonymousNode.Copy()
 			copyNode.data.fqn = getFQN(parent.data.name, copyNode.data.name)
-
+			copyNode.data.isFQNAlias = true
 			parent.children[anonymousNode.data.name] = resetNodeFieldsFQN(copyNode)
 		}
 		// Add anonymous node children to parent
@@ -294,8 +295,8 @@ func addAnonymousSubfields(anonymousNode *Node[field]) {
 			if parent.children[k] == nil {
 				copyNode := v.Copy()
 				copyNode.data.fqn = getFQN(parent.data.name, copyNode.data.name)
+				copyNode.data.isFQNAlias = true
 				parent.children[k] = resetNodeFieldsFQN(copyNode)
-
 			}
 
 		}

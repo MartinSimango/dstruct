@@ -13,6 +13,10 @@ type GeneratedStruct interface {
 	// Generate generates fields for the struct
 	Generate()
 
+	// GenerateAndUpdate Generates fields and updates the root tree for the underlying struct. Allowing
+	// new generated fields to be accessed and modified by Set and Get methods.
+	GenerateAndUpdate()
+
 	// GetFieldGenerationConfig gets the generation config for field within the struct.
 	GetFieldGenerationConfig(field string) *generator.GenerationConfig
 
@@ -53,24 +57,29 @@ func NewGeneratedStructWithConfig(val any,
 func (gs *GeneratedStructImpl) populateGeneratedFields() {
 
 	for name, field := range gs.fieldMap {
-		fmt.Println("Field: ", field.data.fqn)
-
-		if field.HasChildren() {
+		if field.HasChildren() || field.data.isFQNAlias {
 			continue
 		}
-		// fmt.Println("OK: ", field.data.value.Type().String(), field.data.fqn)
+
 		gs.generatedFields[name] = generator.NewGenerationUnit(
 			generator.NewGeneratedField(field.data.fqn,
 				field.data.value,
 				field.data.tag,
 				gs.generator.Copy(),
-				map[string]bool{field.data.value.Type().String(): true},
 			))
 	}
 }
 
 func (gs *GeneratedStructImpl) Generate() {
 	gs.generateFields()
+}
+
+func (gs *GeneratedStructImpl) GenerateAndUpdate() {
+	gs.Generate()
+	gs.Update()
+	// for k, v := range gs.GetFields() {
+	// 	fmt.Println(k, v.anonymous, v.isFQNAlias)
+	// }
 }
 
 func (gs *GeneratedStructImpl) SetFieldGenerationConfig(field string, generationConfig *generator.GenerationConfig) error {

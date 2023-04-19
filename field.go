@@ -14,7 +14,7 @@ type field struct {
 	fqn               string
 	structIndex       *int
 	numberOfSubFields *int
-	isEmptyStruct     *bool
+	isFQNAlias        bool
 }
 
 func (f field) GetFieldName() string {
