@@ -39,7 +39,7 @@ type Generator struct {
 	DefaultGenerationFunctions DefaultGenerationFunctionType
 }
 
-func NewGenerationFunctionDefaults(gc *GenerationConfig) *Generator {
+func NewGenerator(gc *GenerationConfig) *Generator {
 
 	defaultGenerationFunctions := make(DefaultGenerationFunctionType)
 	defaultGenerationFunctions[reflect.String] = GenerateFixedValueFunc("string")

@@ -40,7 +40,7 @@ type GeneratedStructImpl struct {
 var _ GeneratedStruct = &GeneratedStructImpl{}
 
 func NewGeneratedStruct(val any) *GeneratedStructImpl {
-	return NewGeneratedStructWithConfig(val, generator.NewGenerationFunctionDefaults(generator.NewGenerationConfig()))
+	return NewGeneratedStructWithConfig(val, generator.NewGenerator(generator.NewGenerationConfig()))
 }
 
 func NewGeneratedStructWithConfig(val any,
