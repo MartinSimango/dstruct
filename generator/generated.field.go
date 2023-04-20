@@ -30,12 +30,12 @@ func NewGeneratedField(fqn string,
 	return g
 }
 
-func (field *GeneratedField) checkForRecursiveDefinition() bool {
+func (field *GeneratedField) checkForRecursiveDefinition(fail bool) bool {
 	var depth uint = 0
 	var matchedField *GeneratedField
 	for parent := field.Parent; parent != nil; parent = parent.Parent {
 		if parent.Value.Type() == field.Value.Type() {
-			if !field.Generator.GenerationConfig.recursiveDefinition.Allow {
+			if !field.Generator.GenerationConfig.recursiveDefinition.Allow || fail {
 				panic(fmt.Sprintf("github.com/MartinSimango/dstruct/generator: recursive definition found for field `%s` of type %s", parent.Name, parent.Value.Type()))
 			}
 			depth++
@@ -44,7 +44,7 @@ func (field *GeneratedField) checkForRecursiveDefinition() bool {
 			}
 		}
 		if depth == (field.Generator.GenerationConfig.recursiveDefinition.Count + 1) {
-
+			// fmt.Println(":DF ", field.Name, matchedField.Name, field.Value.Type(), matchedField.Value.Type(), matchedField.Value, depth)
 			if matchedField.PointerValue != nil {
 				matchedField.PointerValue.SetZero()
 			} else {
@@ -57,19 +57,19 @@ func (field *GeneratedField) checkForRecursiveDefinition() bool {
 
 }
 
-func (field *GeneratedField) SetValue() {
+func (field *GeneratedField) SetValue() bool {
 
 	switch field.Value.Kind() {
 	case reflect.Struct:
-		if field.checkForRecursiveDefinition() {
-			return
+		if field.checkForRecursiveDefinition(false) {
+			return true
 		}
 		GenerateStructFunc(field).Generate()
 	case reflect.Pointer:
 		GeneratePointerValueFunc(field).Generate()
 	case reflect.Slice:
-		if field.checkForRecursiveDefinition() {
-			return
+		if field.checkForRecursiveDefinition(true) {
+			return true
 		}
 		field.Value.Set(reflect.ValueOf(GenerateSliceFunc(field).Generate()))
 	case reflect.Interface:
@@ -77,6 +77,7 @@ func (field *GeneratedField) SetValue() {
 	default:
 		field.Value.Set(reflect.ValueOf(field.getGenerationFunction().Generate()))
 	}
+	return false
 }
 
 func (field *GeneratedField) setStructValues() {

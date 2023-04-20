@@ -48,13 +48,10 @@ func init() {
 					Parent:    field,
 				}
 
-				// P.Love.Parray#0
-				// newField.Generator.GenerationConfig.SetRecursionCount(2)
-
 				newField.SetValue()
+
 				slice = reflect.Append(slice, sliceElement.Elem())
 			}
-
 			return slice.Interface()
 
 		},
@@ -67,7 +64,6 @@ func init() {
 			if !field.Generator.GenerationConfig.setNonRequiredFields {
 				return nil
 			}
-			// field.SetValue()
 
 			field.Value.Set(reflect.New(field.Value.Type().Elem()))
 			fieldPointerValue := *field
