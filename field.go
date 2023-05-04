@@ -2,7 +2,7 @@ package dstruct
 
 import "reflect"
 
-type field struct {
+type structField struct {
 	name              string
 	tag               reflect.StructTag
 	value             reflect.Value
@@ -14,25 +14,24 @@ type field struct {
 	fqn               string
 	structIndex       *int
 	numberOfSubFields *int
-	isFQNAlias        bool
 }
 
-func (f field) GetFieldName() string {
+func (f structField) GetFieldName() string {
 	return f.name
 }
 
-func (f field) GetValue() any {
+func (f structField) GetValue() any {
 	return f.value.Interface()
 }
 
-func (f field) GetType() reflect.Type {
+func (f structField) GetType() reflect.Type {
 	return f.typ
 }
 
-func (f field) GetFieldFQName() string {
+func (f structField) GetFieldFQName() string {
 	return f.fqn
 }
 
-func (f field) GetTag(t string) string {
+func (f structField) GetTag(t string) string {
 	return f.tag.Get(t)
 }

@@ -9,7 +9,9 @@ import (
 	"github.com/MartinSimango/dstruct/dreflect"
 )
 
-type FieldMap map[string]*Node[field]
+type FieldNode map[string]*Node[structField]
+
+type FieldData map[string]structField
 
 type DynamicStructModifier interface {
 	// Instance returns a copy of the struct
@@ -26,8 +28,8 @@ type DynamicStructModifier interface {
 	// The program will panic if the type of value does not match the type of the struct field `field`.
 	Set(field string, value any) error
 
-	// GetFields returns are map containing all fields within a struct (including fields subfields)
-	GetFields() map[string]field
+	// GetFields returns a map containing all fields within a struct
+	GetFields() FieldData
 
 	// Update updates the struct's underlying tree to represent that of the strct's value
 	Update()
@@ -36,35 +38,36 @@ type DynamicStructModifier interface {
 	Apply(field string, value any) error
 }
 
-type FieldModifier func(*field)
+type FieldModifier func(*structField)
 
 type DynamicStructModifierImpl struct {
-	strct     any
-	fieldMap  FieldMap
-	fieldData map[string]field
-	root      *Node[field]
+	strct        any
+	fieldNodeMap FieldNode
+	fieldData    map[string]structField
+	root         *Node[structField]
 }
 
 var _ DynamicStructModifier = &DynamicStructModifierImpl{}
 
-func newStruct(strct any, rootNode *Node[field]) *DynamicStructModifierImpl {
+func newStruct(strct any, rootNode *Node[structField]) *DynamicStructModifierImpl {
 	dsm := &DynamicStructModifierImpl{
-		strct:     strct,
-		fieldMap:  make(FieldMap),
-		fieldData: make(map[string]field),
-		root:      rootNode,
+		strct:        strct,
+		fieldNodeMap: make(FieldNode),
+		fieldData:    make(map[string]structField),
+		root:         rootNode,
 	}
-	dsm.createFieldMap(rootNode)
+	dsm.createFieldToNodeMappings(rootNode)
 	return dsm
 }
 
-func (dm *DynamicStructModifierImpl) createFieldMap(rootNode *Node[field]) {
+func (dm *DynamicStructModifierImpl) createFieldToNodeMappings(rootNode *Node[structField]) {
 
 	for _, field := range rootNode.children {
-		dm.fieldMap[field.data.fqn] = field
+		dm.fieldNodeMap[field.data.fqn] = field
 		dm.fieldData[field.data.fqn] = *field.data
-		dm.createFieldMap(field)
+		dm.createFieldToNodeMappings(field)
 	}
+
 }
 
 func (dm *DynamicStructModifierImpl) New() any {
@@ -74,11 +77,17 @@ func (dm *DynamicStructModifierImpl) Instance() any {
 	return dreflect.GetUnderlyingPointerValue(dm.strct)
 }
 
+func (dm *DynamicStructModifierImpl) get(field string) (n *Node[structField]) {
+	return dm.fieldNodeMap[field]
+
+}
+
 func (dm *DynamicStructModifierImpl) Get(field string) (any, error) {
-	if dm.fieldMap[field] == nil {
+	if f := dm.get(field); f == nil {
 		return nil, fmt.Errorf("field %s does not exists in struct", field)
+	} else {
+		return f.data.value.Interface(), nil
 	}
-	return dm.fieldMap[field].data.value.Interface(), nil
 }
 
 func isFieldExported(field string) bool {
@@ -94,7 +103,8 @@ func isFieldExported(field string) bool {
 	return true
 }
 func (dm *DynamicStructModifierImpl) Set(field string, value any) error {
-	if dm.fieldMap[field] == nil {
+	var f *Node[structField]
+	if f = dm.get(field); f == nil {
 		return fmt.Errorf("field %s does not exists in struct", field)
 	}
 
@@ -102,7 +112,7 @@ func (dm *DynamicStructModifierImpl) Set(field string, value any) error {
 		return fmt.Errorf("field %s is not exported", field)
 	}
 
-	fieldValue := dm.fieldMap[field].data.value
+	fieldValue := f.data.value
 	if !canExtend(value) {
 		if value == nil {
 			if !fieldValue.IsZero() {
@@ -119,7 +129,7 @@ func (dm *DynamicStructModifierImpl) Set(field string, value any) error {
 	return nil
 }
 
-func (dm *DynamicStructModifierImpl) GetFields() map[string]field {
+func (dm *DynamicStructModifierImpl) GetFields() FieldData {
 	return dm.fieldData
 }
 

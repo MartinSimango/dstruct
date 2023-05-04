@@ -56,8 +56,8 @@ func NewGeneratedStructWithConfig(val any,
 
 func (gs *GeneratedStructImpl) populateGeneratedFields() {
 
-	for name, field := range gs.fieldMap {
-		if field.HasChildren() || field.data.isFQNAlias {
+	for name, field := range gs.fieldNodeMap {
+		if field.HasChildren() {
 			continue
 		}
 
@@ -77,13 +77,10 @@ func (gs *GeneratedStructImpl) Generate() {
 func (gs *GeneratedStructImpl) GenerateAndUpdate() {
 	gs.Generate()
 	gs.Update()
-	// for k, v := range gs.GetFields() {
-	// 	fmt.Println(k, v.anonymous, v.isFQNAlias)
-	// }
 }
 
 func (gs *GeneratedStructImpl) SetFieldGenerationConfig(field string, generationConfig *generator.GenerationConfig) error {
-	if gs.fieldMap[field] == nil {
+	if gs.fieldNodeMap[field] == nil {
 		return fmt.Errorf("field %s does not exist within the struct", field)
 	}
 	if gs.generatedFields[field] == nil {
@@ -102,7 +99,7 @@ func (gs *GeneratedStructImpl) GetFieldGenerator(field string) *generator.Genera
 }
 func (gs *GeneratedStructImpl) SetFieldDefaultGenerationFunction(field string,
 	generationFunction generator.GenerationFunction) {
-	kind := gs.fieldMap[field].data.GetType().Kind()
+	kind := gs.fieldNodeMap[field].data.GetType().Kind()
 	generator := gs.generatedFields[field].Field.Generator
 	generator.DefaultGenerationFunctions[kind] = generationFunction
 	generationFunction.SetGenerationConfig(generator.GenerationConfig)
@@ -121,14 +118,5 @@ func (gs *GeneratedStructImpl) generateFields() {
 		if err := gs.Set(k, genFunc.Generate()); err != nil {
 			fmt.Println(err)
 		}
-	}
-}
-
-func getGeneratorField(field *field, defaultGenerationFunction *generator.Generator) *generator.GeneratedField {
-	return &generator.GeneratedField{
-		Name:      field.fqn,
-		Value:     field.value,
-		Tag:       field.tag,
-		Generator: defaultGenerationFunction,
 	}
 }
