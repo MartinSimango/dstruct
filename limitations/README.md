@@ -56,4 +56,6 @@ func main() {
 
 }
 
+* Generated structs cannot generate slice fields whose types have recursive definition.
+
 ```

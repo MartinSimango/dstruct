@@ -11,25 +11,25 @@ import (
 )
 
 type treeBuilderImpl struct {
-	root      *Node[field]
+	root      *Node[structField]
 	setValues bool
 }
 
 var _ Builder = &treeBuilderImpl{}
 
-func creatRoot() *Node[field] {
-	return &Node[field]{
-		data: &field{
+func createRoot() *Node[structField] {
+	return &Node[structField]{
+		data: &structField{
 			name:  "#root",
 			value: reflect.ValueOf(nil),
 			fqn:   "#root",
 		},
-		children: make(map[string]*Node[field]),
+		children: make(map[string]*Node[structField]),
 	}
 }
 
 func NewBuilder() *treeBuilderImpl {
-	return newBuilderFromNode(creatRoot(), false)
+	return newBuilderFromNode(createRoot(), false)
 }
 
 func canExtend(val any) bool {
@@ -63,7 +63,7 @@ func ExtendStruct(val any) *treeBuilderImpl {
 	return b
 
 }
-func newBuilderFromNode(node *Node[field], resetFQN bool) *treeBuilderImpl {
+func newBuilderFromNode(node *Node[structField], resetFQN bool) *treeBuilderImpl {
 
 	if resetFQN {
 		resetNodeFieldsFQN(node)
@@ -74,7 +74,7 @@ func newBuilderFromNode(node *Node[field], resetFQN bool) *treeBuilderImpl {
 	}
 }
 
-func resetNodeFieldsFQN(node *Node[field]) *Node[field] {
+func resetNodeFieldsFQN(node *Node[structField]) *Node[structField] {
 	for _, v := range node.children {
 		v.data.fqn = getFQN(node.data.name, v.data.name)
 		resetNodeFieldsFQN(v)
@@ -110,12 +110,10 @@ func (dsb *treeBuilderImpl) RemoveField(name string) Builder {
 }
 
 func (dsb *treeBuilderImpl) GetField(field string) Builder {
-
-	node := dsb.getNode(field)
-	if node == nil {
-		return nil
+	if node := dsb.getNode(field); node != nil {
+		return newBuilderFromNode(node, false)
 	}
-	return newBuilderFromNode(node, false)
+	return nil
 }
 
 func (dsb *treeBuilderImpl) NewBuilderFromField(field string) Builder {
@@ -130,7 +128,7 @@ func (dsb *treeBuilderImpl) GetFieldCopy(field string) Builder {
 	return newBuilderFromNode(copyNode, false)
 }
 
-func (dsb *treeBuilderImpl) getNode(field string) *Node[field] {
+func (dsb *treeBuilderImpl) getNode(field string) *Node[structField] {
 
 	fields := strings.Split(field, ".")
 	node := dsb.root
@@ -155,7 +153,7 @@ func (db *treeBuilderImpl) Build() DynamicStructModifier {
 	return newStruct(db.buildStruct(rootCopy), rootCopy)
 }
 
-func (db *treeBuilderImpl) buildStruct(tree *Node[field]) any {
+func (db *treeBuilderImpl) buildStruct(tree *Node[structField]) any {
 	structValue := reflect.ValueOf(dreflect.GetPointerOfValueType(treeToStruct(tree)))
 	tree.data.value = structValue
 	if db.setValues {
@@ -169,7 +167,7 @@ func (db *treeBuilderImpl) buildStruct(tree *Node[field]) any {
 	return structValue.Interface()
 }
 
-func (dsb *treeBuilderImpl) addFieldToTree(name string, typ interface{}, pkgPath string, anonymous bool, tag reflect.StructTag, root *Node[field]) reflect.Type {
+func (dsb *treeBuilderImpl) addFieldToTree(name string, typ interface{}, pkgPath string, anonymous bool, tag reflect.StructTag, root *Node[structField]) reflect.Type {
 	value := reflect.ValueOf(typ)
 	if !value.IsValid() {
 		panic(fmt.Sprintf("Cannot determine type of field %s", name))
@@ -180,7 +178,7 @@ func (dsb *treeBuilderImpl) addFieldToTree(name string, typ interface{}, pkgPath
 		*root.data.numberOfSubFields++
 	}
 
-	field := &field{
+	field := &structField{
 		name:      name,
 		value:     value,
 		tag:       tag,
@@ -205,7 +203,7 @@ func (dsb *treeBuilderImpl) addFieldToTree(name string, typ interface{}, pkgPath
 	return field.typ
 }
 
-func sortKeys(root *Node[field]) (keys []string) {
+func sortKeys(root *Node[structField]) (keys []string) {
 	for key := range root.children {
 		keys = append(keys, key)
 	}
@@ -216,7 +214,7 @@ func sortKeys(root *Node[field]) (keys []string) {
 	return
 }
 
-func treeToStruct(root *Node[field]) any {
+func treeToStruct(root *Node[structField]) any {
 	var structFields []reflect.StructField
 
 	//sort the keys to ensure type  of struct produced is always the same
@@ -250,7 +248,7 @@ func treeToStruct(root *Node[field]) any {
 	return strct.Interface()
 }
 
-func setStructFieldValues(strct reflect.Value, root *Node[field]) {
+func setStructFieldValues(strct reflect.Value, root *Node[structField]) {
 	for i := 0; i < strct.NumField(); i++ {
 		field := strct.Field(i)
 		fieldName := strct.Type().Field(i).Name
@@ -270,43 +268,15 @@ func setStructFieldValues(strct reflect.Value, root *Node[field]) {
 		currentNode.data.value = field
 		// fmt.Println("C: ", currentNode.data.anonymous, currentNode.data.fqn)
 
-		if currentNode.data.anonymous {
-			addAnonymousSubfields(currentNode)
-		}
+		// if currentNode.data.anonymous {
+		// 	db.addAnonymousSubfields(currentNode)
+		// }
 
 	}
 
 }
 
-// TODO ensure anonymous nodes don't propagate up past none embedded fields
-func addAnonymousSubfields(anonymousNode *Node[field]) {
-
-	parent := anonymousNode.parent
-	for parent != nil {
-		// Add anonymous node to parent
-		if parent.children[anonymousNode.data.name] == nil {
-			copyNode := anonymousNode.Copy()
-			copyNode.data.fqn = getFQN(parent.data.name, copyNode.data.name)
-			copyNode.data.isFQNAlias = true
-			parent.children[anonymousNode.data.name] = resetNodeFieldsFQN(copyNode)
-		}
-		// Add anonymous node children to parent
-		for k, v := range anonymousNode.children {
-			if parent.children[k] == nil {
-				copyNode := v.Copy()
-				copyNode.data.fqn = getFQN(parent.data.name, copyNode.data.name)
-				copyNode.data.isFQNAlias = true
-				parent.children[k] = resetNodeFieldsFQN(copyNode)
-			}
-
-		}
-
-		parent = parent.parent
-	}
-
-}
-
-func setPointerFieldValue(field reflect.Value, currentNode *Node[field]) {
+func setPointerFieldValue(field reflect.Value, currentNode *Node[structField]) {
 	if currentNode.data.value.IsNil() {
 		return
 	}
@@ -327,13 +297,10 @@ func setPointerFieldValue(field reflect.Value, currentNode *Node[field]) {
 		field.Set(currentNode.data.value)
 	}
 	currentNode.data.value = field
-	if currentNode.data.anonymous {
-		addAnonymousSubfields(currentNode)
-	}
 
 }
 
-func (dsb *treeBuilderImpl) addStructFields(strct reflect.Value, root *Node[field], ptrDepth int, anon bool) reflect.Type {
+func (dsb *treeBuilderImpl) addStructFields(strct reflect.Value, root *Node[structField], ptrDepth int, anon bool) reflect.Type {
 	var structFields []reflect.StructField
 
 	// Create pointer to struct to allow unexported field values to be read in order
@@ -385,7 +352,7 @@ func getPtrValue(value reflect.Value, ptrDepth int) (reflect.Value, int) {
 	return value, ptrDepth
 }
 
-func (dsb *treeBuilderImpl) addPtrField(value reflect.Value, node *Node[field], anonymous bool) reflect.Type {
+func (dsb *treeBuilderImpl) addPtrField(value reflect.Value, node *Node[structField], anonymous bool) reflect.Type {
 
 	if value.IsNil() {
 		return reflect.TypeOf(value.Interface())
@@ -402,7 +369,7 @@ func (dsb *treeBuilderImpl) addPtrField(value reflect.Value, node *Node[field], 
 }
 
 func getFQN(root, name string) string {
-	if root != "#root" {
+	if root != "#root" && root != "" {
 		return fmt.Sprintf("%s.%s", root, name)
 	}
 	return name
