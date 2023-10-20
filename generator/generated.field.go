@@ -6,8 +6,6 @@ import (
 	"strconv"
 )
 
-type ParentType map[string]int
-
 type GeneratedField struct {
 	Name         string
 	Value        reflect.Value
@@ -155,9 +153,17 @@ func (field *GeneratedField) getGenerationFunction() GenerationFunction {
 		return GenerateFixedValueFunc(tags.Get(fmt.Sprintf("enum_%d", generateNum(0, numEnums-1)+1)))
 	}
 
-	gen_task, ok := tags.Lookup("gen_task")
+	_, ok = tags.Lookup("gen_task")
 	if ok {
-		return getTask(gen_task, field.Name).getFunction()
+		taskProperties, err := CreateTaskProperties(field.Name, tags)
+		if err != nil {
+			panic(fmt.Sprintf("Error decoding gen_task: %s", err.Error()))
+		}
+		task := GetTask(taskProperties.TaskName)
+		if task == nil {
+			panic(fmt.Sprintf("Unregistered task %s", taskProperties.TaskName))
+		}
+		return task.GenerationFunction(*taskProperties)
 	}
 	return field.Generator.DefaultGenerationFunctions[kind]
 }

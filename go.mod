@@ -1,6 +1,13 @@
 module github.com/MartinSimango/dstruct
 
-go 1.20
+go 1.21.3
+
+
+retract v1.1.1
+retract v1.1.0
+retract v1.0.0
+retract v0.1.2
+retract v0.1.1
 
 require (
 	github.com/stretchr/testify v1.8.1

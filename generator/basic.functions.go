@@ -11,7 +11,8 @@ import (
 
 type basicGenerationFunction struct {
 	_func func(...any) any
-	args  []any
+	// TODO consider making args exportable for more customizable generation functions
+	args []any
 }
 
 const ISO8601 string = "2018-03-20T09:12:28Z"
