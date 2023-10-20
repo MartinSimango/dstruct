@@ -31,7 +31,9 @@ type DynamicStructModifier interface {
 	// GetFields returns a map containing all fields within a struct
 	GetFields() FieldData
 
-	// Update updates the struct's underlying tree to represent that of the strct's value
+	// Update updates the struct's underlying tree to represent that of the strct's value.
+	// The structs underlying tree can change if new fields are added due to fields within the struct changing from
+	// nil to become not nil. This can lead to new additional fields being introduced within the struct
 	Update()
 
 	// Apply is a combination of Set and Update. Update is not called if Apply fails.

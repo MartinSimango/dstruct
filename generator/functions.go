@@ -55,6 +55,7 @@ func GenerateNumberFunc[n number](min, max n) GenerationFunction {
 	}
 
 	f.args = []any{&min, &max}
+
 	return f
 }
 

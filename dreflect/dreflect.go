@@ -112,7 +112,7 @@ func convert(src reflect.Value, dst reflect.Value) reflect.Value {
 		}
 
 		retPointer := reflect.New(dst.Type())
-		//enure that new pointer uses same memory address as src pointer
+		//ensure that new pointer uses same memory address as src pointer
 		reflect.NewAt(src.Type(), unsafe.Pointer(retPointer.Elem().UnsafeAddr())).Elem().
 			Set(src)
 

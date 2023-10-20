@@ -1,6 +1,10 @@
 package dstruct
 
-import "reflect"
+import (
+	"fmt"
+	"reflect"
+	"strconv"
+)
 
 type structField struct {
 	name              string
@@ -34,4 +38,25 @@ func (f structField) GetFieldFQName() string {
 
 func (f structField) GetTag(t string) string {
 	return f.tag.Get(t)
+}
+
+func (f structField) GetJsonName() string {
+	return f.jsonName
+}
+
+func (f structField) GetEnumValues() (enumValues map[string]int) {
+	enum, ok := f.tag.Lookup("enum")
+	if ok {
+		numEnums, err := strconv.Atoi(enum)
+		if err != nil {
+			return
+		}
+		enumValues = make(map[string]int)
+		for i := 1; i <= numEnums; i++ {
+			if key := f.tag.Get(fmt.Sprintf("enum_%d", i)); key != "" {
+				enumValues[key] = i
+			}
+		}
+	}
+	return
 }

@@ -151,6 +151,8 @@ func main() {
 		AddField("Person", Person{Name: "Martin", Age: 25}, `json:"person"`).
 		AddField("Job", "Software Developer", "")
 
+		
+
 	strct := structBuilder.Build().Instance()
 
 	generatedStruct := dstruct.NewGeneratedStruct(strct)

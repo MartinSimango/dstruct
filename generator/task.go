@@ -2,83 +2,92 @@ package generator
 
 import (
 	"fmt"
+	"reflect"
 	"strconv"
 	"strings"
 )
 
 type TaskName string
 
-const (
-	GenInt32 TaskName = "GenInt32"
-)
+type Task interface {
+	GenerationFunction(taskProperties TaskProperties) GenerationFunction
+	ExpectedParameterCount() int
+	Name() string
+}
 
-type Task struct {
-	Name       TaskName
-	Parameters string
+var tasks map[string]Task
+
+func init() {
+	tasks = make(map[string]Task)
+}
+
+type TaskProperties struct {
+	TaskName   string
+	Parameters []string
 	FieldName  string
 }
 
-type GenInt32Params struct {
-	min int32
-	max int32
+func GetTask(task string) Task {
+	return tasks[task]
 }
 
-func (t *Task) GenInt32Params() GenInt32Params {
-	params := strings.Split(t.Parameters, ",")
-
-	if len(params) != 2 {
-		panic(fmt.Sprintf("error with field %s: task %s: task requires 2 parameters but has %d", t.FieldName, t.Name, len(params)))
+func AddTask(task Task) error {
+	name := task.Name()
+	if tasks[name] != nil {
+		return fmt.Errorf("Task with name %s already exists", name)
 	}
-	param_1, err := strconv.Atoi(params[0])
-	if err != nil {
-		panic(fmt.Sprintf("error with field %s: task %s error: %s", t.FieldName, t.Name, err))
-	}
-
-	param_2, err := strconv.Atoi(params[1])
-	if err != nil {
-		panic(fmt.Sprintf("error with field %s: task %s error: %s", t.FieldName, t.Name, err))
-	}
-
-	if param_1 > param_2 {
-		err = fmt.Errorf("min must be less or equal to the max value min = %d max = %d", param_1, param_2)
-		panic(fmt.Sprintf("error with field %s: task %s error: %s", t.FieldName, t.Name, err))
-
-	}
-
-	return GenInt32Params{
-		min: int32(param_1),
-		max: int32(param_2),
-	}
+	tasks[name] = task
+	return nil
 }
 
-func getTask(task string, fieldName string) Task {
-	task = strings.TrimSpace(task)
-	leftBraceIndex := strings.Index(task, "(")
+func getParameters(parameterCount int, tags reflect.StructTag) (parameters []string) {
+	for i := 1; i <= parameterCount; i++ {
+		parameters = append(parameters, tags.Get(fmt.Sprintf("gen_task_%d", i)))
+	}
+	return parameters
+}
+
+func CreateTaskProperties(fieldName string, tags reflect.StructTag) (*TaskProperties, error) {
+	gen_task_tag := strings.TrimSpace(tags.Get("gen_task"))
+	leftBraceIndex := strings.Index(gen_task_tag, "(")
 	if leftBraceIndex == -1 {
-		panic(fmt.Sprintf("error with field %s: task %s error: no ( found", fieldName, task))
+		return nil, fmt.Errorf("error with field %s: task %s error: no ( found", fieldName, gen_task_tag)
 	}
 
-	if task[len(task)-1:] != ")" {
-		panic(fmt.Sprintf("error with field %s: task %s error: last character of task must be )", fieldName, task))
+	if gen_task_tag[len(gen_task_tag)-1:] != ")" {
+		return nil, fmt.Errorf("error with field %s: task %s error: last character of task must be )", fieldName, gen_task_tag)
 	}
-	taskName := task[:leftBraceIndex]
-	parameters := task[leftBraceIndex+1 : len(task)-1]
-	return Task{
-		Name:       TaskName(taskName),
-		Parameters: parameters,
+	taskName := gen_task_tag[:leftBraceIndex]
+	parameterCount, err := strconv.Atoi(gen_task_tag[leftBraceIndex+1 : len(gen_task_tag)-1])
+	if err != nil {
+		return nil, fmt.Errorf("error getting task parameter count: %w", err)
+	}
+
+	return &TaskProperties{
+		TaskName:   taskName,
+		Parameters: getParameters(parameterCount, tags),
 		FieldName:  fieldName,
-	}
+	}, nil
 }
 
-func (t Task) getFunction() GenerationFunction {
-	switch t.Name {
-	case GenInt32:
-		params := t.GenInt32Params()
-		return GenerateNumberFunc(params.min, params.max)
+func GetTagForTask(name TaskName, params ...any) reflect.StructTag {
+
+	if tasks[string(name)] == nil {
+		panic(fmt.Sprintf("Task '%s' is not registered", name))
 	}
-	panic(fmt.Sprintf("Invalid task name '%s' for field %s ", t.Name, t.FieldName))
+
+	tags := fmt.Sprintf(`gen_task:"%s(%d)"`, name, len(params))
+	for i, p := range params {
+		tags += fmt.Sprintf(` gen_task_%d:"%v"`, (i + 1), p)
+	}
+
+	return reflect.StructTag(tags)
+
 }
 
-func GetTagsForGenInt32Task(min int32, max int32) string {
-	return fmt.Sprintf(`gen_task:"%s(%d,%d)"`, GenInt32, min, max)
+func validateParamCount(task Task, taskProperties TaskProperties) {
+	if len(taskProperties.Parameters) != task.ExpectedParameterCount() {
+		panic(fmt.Sprintf("error with field %s. task '%s': task requires %d parameters but has %d", taskProperties.FieldName, task.Name(), task.ExpectedParameterCount(), len(taskProperties.Parameters)))
+	}
+
 }
