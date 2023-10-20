@@ -85,7 +85,7 @@ func GetTagForTask(name TaskName, params ...any) reflect.StructTag {
 
 }
 
-func validateParamCount(task Task, taskProperties TaskProperties) {
+func ValidateParamCount(task Task, taskProperties TaskProperties) {
 	if len(taskProperties.Parameters) != task.ExpectedParameterCount() {
 		panic(fmt.Sprintf("error with field %s. task '%s': task requires %d parameters but has %d", taskProperties.FieldName, task.Name(), task.ExpectedParameterCount(), len(taskProperties.Parameters)))
 	}
