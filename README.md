@@ -20,6 +20,7 @@ extend or merge structs which have struct fields of type `any` their value must 
 
 
 ## Sections
+* [Install](https://github.com/MartinSimango/dstruct#install)
 * [How it works?](https://github.com/MartinSimango/dstruct#how-it-works)
 * [Using the builder](https://github.com/MartinSimango/dstruct#using-the-builder)
 * [Using the modifier](https://github.com/MartinSimango/dstruct#using-the-modifier)
@@ -30,7 +31,11 @@ extend or merge structs which have struct fields of type `any` their value must 
 
 
 
+## Install
 
+```sh
+go get github.com/MartinSimango/dstruct
+```
 
 ## How it works?
 
