@@ -141,7 +141,7 @@ func (dm *DynamicStructModifierImpl) String() string {
 }
 
 func (dm *DynamicStructModifierImpl) Update() {
-	*dm = *ExtendStruct(dm.strct).Build().(*DynamicStructModifierImpl)
+	*dm = *ExtendStruct(dm.Instance()).Build().(*DynamicStructModifierImpl)
 }
 
 func (dm *DynamicStructModifierImpl) Apply(field string, value any) error {
