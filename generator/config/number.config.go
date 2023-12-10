@@ -1,157 +1,202 @@
 package config
 
-import "github.com/MartinSimango/dstruct/util"
-
-type NumberConfig interface {
-	IntRange() (*int, *int)
-	SetIntRange(min int, max int) NumberConfig
-	Int8Range() (*int8, *int8)
-	SetInt8Range(min int8, max int8) NumberConfig
-	Int16Range() (*int16, *int16)
-	SetInt16Range(min int16, max int16) NumberConfig
-	Int32Range() (*int32, *int32)
-	SetInt32Range(min int32, max int32) NumberConfig
-	Int64Range() (*int64, *int64)
-	SetInt64Range(min int64, max int64) NumberConfig
-	Copy() NumberConfig
+type Number interface {
+	int | int8 | int16 | int32 | int64 | float32 | float64 |
+		uint | uint8 | uint16 | uint32 | uint64 | uintptr
 }
-type Range[n util.Number] struct {
+
+type NumRange[n Number] struct {
 	min n
 	max n
 }
-
-type NumberConfigImpl struct {
-	intRange   Range[int]
-	int8Range  Range[int8]
-	int16Range Range[int16]
-	int32Range Range[int32]
-	int64Range Range[int64]
+type NumberRangeImpl[n Number] struct {
+	NumRange[n]
 }
 
-var _ NumberConfig = &NumberConfigImpl{}
-
-// Int16Range implements NumberConfig.
-func (nc *NumberConfigImpl) Int16Range() (*int16, *int16) {
-	return &nc.int16Range.min, &nc.int16Range.max
+func (nr *NumberRangeImpl[n]) Range() (n, n) {
+	return nr.min, nr.max
 }
 
-// Int32Range implements NumberConfig.
-func (nc *NumberConfigImpl) Int32Range() (*int32, *int32) {
-	return &nc.int32Range.min, &nc.int32Range.max
-}
+func (nr *NumberRangeImpl[n]) Max() n {
+	return nr.max
 
-// Int64Range implements NumberConfig.
-func (nc *NumberConfigImpl) Int64Range() (*int64, *int64) {
-	return &nc.int64Range.min, &nc.int64Range.max
+}
+func (nr *NumberRangeImpl[n]) Min() n {
+	return nr.min
 
 }
 
-// Int8Range implements NumberConfig.
-func (nc *NumberConfigImpl) Int8Range() (*int8, *int8) {
-	return &nc.int8Range.min, &nc.int8Range.max
-}
-
-// SetInt16Range implements NumberConfig.
-func (nc *NumberConfigImpl) SetInt16Range(min int16, max int16) NumberConfig {
-	setRange(min, max, &nc.int16Range.min, &nc.int16Range.max)
-	return nc
-}
-
-// SetInt32Range implements NumberConfig.
-func (nc *NumberConfigImpl) SetInt32Range(min int32, max int32) NumberConfig {
-	setRange(min, max, &nc.int32Range.min, &nc.int32Range.max)
-	return nc
-}
-
-// SetInt64Range implements NumberConfig.
-func (nc *NumberConfigImpl) SetInt64Range(min int64, max int64) NumberConfig {
-	setRange(min, max, &nc.int64Range.min, &nc.int64Range.max)
-	return nc
-}
-
-// SetInt8Range implements NumberConfig.
-func (nc *NumberConfigImpl) SetInt8Range(min int8, max int8) NumberConfig {
-	setRange(min, max, &nc.int8Range.min, &nc.int8Range.max)
-	return nc
-}
-
-func (nc *NumberConfigImpl) IntRange() (*int, *int) {
-	return &nc.intRange.min, &nc.intRange.max
-
-}
-
-func (nc *NumberConfigImpl) SetIntRange(min, max int) NumberConfig {
-	setRange(min, max, &nc.intRange.min, &nc.intRange.max)
-	return nc
-}
-
-// Copy implements NumberConfig.
-func (nc *NumberConfigImpl) Copy() NumberConfig {
-	newNumberConfig := &NumberConfigImpl{}
-	*newNumberConfig = *nc
-	return newNumberConfig
-}
-
-func setRange[n util.Number](min, max n, ncMin, ncMax *n) {
-	if min > max {
-		return
+func (nr *NumberRangeImpl[n]) SetRange(min n, max n) {
+	if min < max {
+		nr.min = min
+		nr.max = max
 	}
-	*ncMin, *ncMax = min, max
+
+}
+
+func (nr *NumberRangeImpl[n]) SetMax(max n) {
+	nr.SetRange(nr.min, max)
+
+}
+func (nr *NumberRangeImpl[n]) SetMin(min n) {
+	nr.SetRange(min, nr.max)
+
+}
+
+func (nr *NumberRangeImpl[n]) RangeRef() (*n, *n) {
+	return &nr.min, &nr.max
+
+}
+
+type NumberConfig interface {
+	Int() *NumberRangeImpl[int]
+	Int8() *NumberRangeImpl[int8]
+	Int16() *NumberRangeImpl[int16]
+	Int32() *NumberRangeImpl[int32]
+	Int64() *NumberRangeImpl[int64]
+	Float32() *NumberRangeImpl[float32]
+	Float64() *NumberRangeImpl[float64]
+	UInt() *NumberRangeImpl[uint]
+	UInt8() *NumberRangeImpl[uint8]
+	UInt16() *NumberRangeImpl[uint16]
+	UInt32() *NumberRangeImpl[uint32]
+	UInt64() *NumberRangeImpl[uint64]
+	UIntPtr() *NumberRangeImpl[uintptr]
+	Copy() NumberConfig
+}
+
+type IntConfig NumberRangeImpl[int]
+type NumberConfigImpl struct {
+	IntConfig     NumberRangeImpl[int]
+	Int8Config    NumberRangeImpl[int8]
+	Int16Config   NumberRangeImpl[int16]
+	Int32Config   NumberRangeImpl[int32]
+	Int64Config   NumberRangeImpl[int64]
+	Float32Config NumberRangeImpl[float32]
+	Float64Config NumberRangeImpl[float64]
+	UIntConfig    NumberRangeImpl[uint]
+	UInt8Config   NumberRangeImpl[uint8]
+	UInt16Config  NumberRangeImpl[uint16]
+	UInt32Config  NumberRangeImpl[uint32]
+	UInt64Config  NumberRangeImpl[uint64]
+	UIntPtrConfig NumberRangeImpl[uintptr]
+}
+
+func NumberRangeConfig[N Number](min, max N) NumberRangeImpl[N] {
+	return NumberRangeImpl[N]{NumRange[N]{min, max}}
 }
 
 func NewNumberConfig() *NumberConfigImpl {
 	return &NumberConfigImpl{
-		intRange:   Range[int]{0, 10},
-		int8Range:  Range[int8]{0, 10},
-		int16Range: Range[int16]{0, 10},
-		int32Range: Range[int32]{0, 10},
-		int64Range: Range[int64]{0, 10},
+		IntConfig:     NumberRangeConfig[int](0, 10),
+		Int8Config:    NumberRangeConfig[int8](0, 10),
+		Int16Config:   NumberRangeConfig[int16](0, 10),
+		Int32Config:   NumberRangeConfig[int32](0, 10),
+		Int64Config:   NumberRangeConfig[int64](0, 10),
+		Float32Config: NumberRangeConfig[float32](0, 10),
+		Float64Config: NumberRangeConfig[float64](0, 10),
+		UIntConfig:    NumberRangeConfig[uint](0, 10),
+		UInt8Config:   NumberRangeConfig[uint8](0, 10),
+		UInt16Config:  NumberRangeConfig[uint16](0, 10),
+		UInt32Config:  NumberRangeConfig[uint32](0, 10),
+		UInt64Config:  NumberRangeConfig[uint64](0, 10),
+		UIntPtrConfig: NumberRangeConfig[uintptr](0, 10),
 	}
+
 }
 
-// IntRange() (*n, *n)
-// 	SetIntRange(min n, max n)
+var _ NumberConfig = &NumberConfigImpl{}
 
-// type NumberConfig[n util.Number] interface {
-// 	// TODO pointer values should only be accesible internally move files to same package
-// 	MinRange() *n
-// 	MaxRange() *n
-// 	SetRange(min n, max n)
-// 	Copy() NumberConfig[n]
-// }
+// Float32 implements NumberConfig.
+func (nc *NumberConfigImpl) Float32() *NumberRangeImpl[float32] {
+	return &nc.Float32Config
+}
 
-// type NumberConfigImpl[n util.Number] struct {
-// 	minRange n
-// 	maxRange n
-// }
+// Float64 implements NumberConfig.
+func (nc *NumberConfigImpl) Float64() *NumberRangeImpl[float64] {
+	return &nc.Float64Config
+}
 
-// var _ NumberConfig[int] = &NumberConfigImpl[int]{}
+// Int implements NumberConfig.
+func (nc *NumberConfigImpl) Int() *NumberRangeImpl[int] {
+	return &nc.IntConfig
+}
 
-// func NewNumberConfig[n util.Number]() (cfg *NumberConfigImpl[n]) {
-// 	return &NumberConfigImpl[n]{
-// 		minRange: 0,
-// 		maxRange: 10,
-// 	}
-// }
+// Int16 implements NumberConfig.
+func (nc *NumberConfigImpl) Int16() *NumberRangeImpl[int16] {
+	return &nc.Int16Config
+}
 
-// func NewNumberConfigWithRange[n util.Number](min, max n) (cfg *NumberConfigImpl[n]) {
-// 	return &NumberConfigImpl[n]{
-// 		minRange: min,
-// 		maxRange: max,
-// 	}
-// }
+// Int32 implements NumberConfig.
+func (nc *NumberConfigImpl) Int32() *NumberRangeImpl[int32] {
+	return &nc.Int32Config
+}
 
-// func (nc *NumberConfigImpl[n]) MinRange() *n {
-// 	return &nc.minRange
+// Int64 implements NumberConfig.
+func (nc *NumberConfigImpl) Int64() *NumberRangeImpl[int64] {
+	return &nc.Int64Config
+}
 
-// }
+// Int8 implements NumberConfig.
+func (nc *NumberConfigImpl) Int8() *NumberRangeImpl[int8] {
+	return &nc.Int8Config
 
-// func (nc *NumberConfigImpl[n]) MaxRange() *n {
-// 	return &nc.maxRange
-// }
+}
 
-// func (nc *NumberConfigImpl[n]) Copy() NumberConfig[n] {
-// 	newNumberConfig := &NumberConfigImpl[n]{}
-// 	*newNumberConfig = *nc
-// 	return newNumberConfig
-// }
+// UInt implements NumberConfig.
+func (nc *NumberConfigImpl) UInt() *NumberRangeImpl[uint] {
+	return &nc.UIntConfig
+}
+
+// UInt16 implements NumberConfig.
+func (nc *NumberConfigImpl) UInt16() *NumberRangeImpl[uint16] {
+	return &nc.UInt16Config
+}
+
+// UInt32 implements NumberConfig.
+func (nc *NumberConfigImpl) UInt32() *NumberRangeImpl[uint32] {
+	return &nc.UInt32Config
+
+}
+
+// UInt64 implements NumberConfig.
+func (nc *NumberConfigImpl) UInt64() *NumberRangeImpl[uint64] {
+	return &nc.UInt64Config
+}
+
+// UInt8 implements NumberConfig.
+func (nc *NumberConfigImpl) UInt8() *NumberRangeImpl[uint8] {
+	return &nc.UInt8Config
+}
+
+// UIntptr implements NumberConfig.
+func (nc *NumberConfigImpl) UIntPtr() *NumberRangeImpl[uintptr] {
+	return &nc.UIntPtrConfig
+}
+
+// UIntptr implements NumberConfig.
+func (nc *NumberConfigImpl) Copy() NumberConfig {
+	return simplePointerCopy(nc)
+	// return &NumberConfigImpl{
+	// 	IntConfig:     nc.IntConfig,
+	// 	Int8Config:    nc.Int8Config,
+	// 	Int16Config:   nc.Int16Config,
+	// 	Int32Config:   nc.Int32Config,
+	// 	Int64Config:   nc.Int64Config,
+	// 	Float32Config: nc.Float32Config,
+	// 	Float64Config: nc.Float64Config,
+	// 	UIntConfig:    nc.UIntConfig,
+	// 	UInt8Config:   nc.UInt8Config,
+	// 	UInt16Config:  nc.UInt16Config,
+	// 	UInt32Config:  nc.UInt32Config,
+	// 	UInt64Config:  nc.UInt64Config,
+	// 	UIntPtrConfig: nc.UIntPtrConfig,
+	// }
+}
+
+func simplePointerCopy[T any](p *T) *T {
+	v := new(T)
+	*v = *p
+	return v
+
+}

@@ -3,7 +3,10 @@ package dstruct
 import (
 	"fmt"
 	"reflect"
+	"time"
 
+	"github.com/MartinSimango/dstruct/dreflect"
+	"github.com/MartinSimango/dstruct/generator"
 	"github.com/MartinSimango/dstruct/generator/config"
 	"github.com/MartinSimango/dstruct/generator/core"
 )
@@ -19,10 +22,10 @@ type GeneratedStruct interface {
 	// new generated fields to be accessed and modified by Set and Get methods.
 	GenerateAndUpdate()
 
+	SetFieldGenerationValueConfig(field string, config config.GenerationValueConfig)
+
 	// GetFieldValueGenerationConfig gets the generation config for field within the struct.
 	GetFieldValueGenerationConfig(field string) config.GenerationValueConfig
-
-	GetFieldGenerationConfig(field string) config.Config
 
 	GetValueGenerationConfig() config.GenerationValueConfig
 
@@ -34,84 +37,107 @@ type GeneratedStruct interface {
 	// Fields types that cannot be generated: structs, func, chan, any (will default to a nil value being generated).
 	//
 	// Note: Pointers to structs can be generated.
-	SetFieldGenerationConfig(field string, generationConfig config.Config) error
+	SetFieldConfig(field string, generationConfig config.Config) error
 
-	SetFieldGenerationValueConfig(field string, config config.GenerationValueConfig)
+	GetFieldConfig(field string) config.Config
 
-	SetGenerationConfig(config config.Config)
+	SetConfig(config config.Config)
+
+	GetConfig() config.Config
 
 	SetGenerationValueConfig(config config.GenerationValueConfig)
+
+	SetFieldFromTask(field string, task generator.Task, params ...any) error
 }
 
-type GeneratedStructImpl struct {
+type GeneratedStructImpl[T any] struct {
 	*DynamicStructModifierImpl
 	generatedFields      GenerationFields
 	generatedFieldConfig core.GeneratedFieldConfig
 	config               config.Config
+	instance             T
+	excludedTypes        map[reflect.Type]bool
 }
 
-var _ GeneratedStruct = &GeneratedStructImpl{}
+// var _ GeneratedStruct = &GeneratedStructImpl[int]{}
 
-func NewGeneratedStruct(val any) *GeneratedStructImpl {
+func NewGeneratedStruct[T any](val T) *GeneratedStructImpl[T] {
 	return NewGeneratedStructWithConfig(val, config.NewConfig())
 }
 
-func NewGeneratedStructWithConfig(val any,
-	cfg config.Config) *GeneratedStructImpl {
-	generatedStruct := &GeneratedStructImpl{
+func NewGeneratedStructWithConfig[T any](val T,
+	cfg config.Config) *GeneratedStructImpl[T] {
+	generatedStruct := &GeneratedStructImpl[T]{
 		DynamicStructModifierImpl: ExtendStruct(val).Build().(*DynamicStructModifierImpl),
 		generatedFields:           make(GenerationFields),
 		config:                    cfg,
 		generatedFieldConfig:      core.NewGenerateFieldConfig(cfg, config.DefaultGenerationValueConfig()),
+		excludedTypes:             make(map[reflect.Type]bool),
 	}
-
-	generatedStruct.populateGeneratedFields()
+	generatedStruct.ExcludeType(time.Time{}, core.DefaultDateFunctionHolder(cfg.Date()))
+	generatedStruct.populateGeneratedFields(generatedStruct.root)
 	return generatedStruct
 }
 
-func (gs *GeneratedStructImpl) populateGeneratedFields() {
+func (gs *GeneratedStructImpl[T]) ExcludeType(val any, function core.FunctionHolder) {
+	gs.excludedTypes[reflect.TypeOf(val)] = true
+}
 
-	for name, field := range gs.fieldNodeMap {
+func (gs *GeneratedStructImpl[T]) populateGeneratedFields(node *Node[structField]) {
+
+	for _, field := range node.children {
 		if field.HasChildren() {
+			if gs.excludedTypes[field.data.goType] {
+				field.data.value.Set(reflect.ValueOf(time.Now()))
+				continue
+			}
+			gs.populateGeneratedFields(field)
 			continue
 		}
 		fieldKind := field.data.value.Kind()
 
-		gs.generatedFields[name] = core.NewGenerationUnit(
-			core.NewGeneratedField(field.data.fqn,
-				field.data.value,
-				field.data.tag,
-				gs.generatedFieldConfig.Copy(fieldKind),
-			))
-		if fieldKind == reflect.Slice {
-			f := gs.generatedFields[name]
-			f.GenerationFunctions[fieldKind] =
-				core.NewSliceFunctionHolder(core.GenerateSliceFunc, f.GeneratedField, gs.config)
-		}
+		generatedField := core.NewGeneratedField(field.data.fqn,
+			field.data.value,
+			field.data.tag,
+			gs.generatedFieldConfig.Copy(fieldKind),
+			gs.config.Copy(), // TODO account for nil
+		)
+
+		gs.generatedFields[field.data.fqn] = core.NewGenerationUnit(generatedField)
+
 	}
+
 }
 
-func (gs *GeneratedStructImpl) Generate() {
+func (gs *GeneratedStructImpl[T]) Generate() {
 	gs.generateFields()
+
+	v := any(*new(T))
+	switch v.(type) {
+	case nil:
+		gs.instance = gs.DynamicStructModifierImpl.Instance().(T)
+		return
+	}
+	gs.instance = ToType[T](gs.DynamicStructModifierImpl)
 }
 
-func (gs *GeneratedStructImpl) GenerateAndUpdate() {
+func (gs *GeneratedStructImpl[T]) GenerateAndUpdate() {
 	gs.Generate()
 	gs.Update()
 }
 
-func (gs *GeneratedStructImpl) changeChildrenConfig(node *Node[structField], cfg config.Config) {
-	for k, v := range node.children {
+func (gs *GeneratedStructImpl[T]) changeChildrenConfig(node *Node[structField], cfg config.Config) {
+	for _, v := range node.children {
 		if v.HasChildren() {
 			gs.changeChildrenConfig(v, cfg)
 			continue
 		}
-		gs.generatedFields[k].GenerationFunctions[v.data.typ.Kind()].SetConfig(cfg)
+		gs.generatedFields[v.data.fqn].GenerationFunctions[v.data.typ.Kind()].SetConfig(cfg)
 	}
 
 }
 
-func (gs *GeneratedStructImpl) SetFieldGenerationConfig(field string, cfg config.Config) error {
+func (gs *GeneratedStructImpl[T]) SetFieldGenerationConfig(field string, cfg config.Config) error {
 	if gs.fieldNodeMap[field] == nil {
 		return fmt.Errorf("field %s does not exist within the struct", field)
 	}
@@ -129,21 +155,20 @@ func (gs *GeneratedStructImpl) SetFieldGenerationConfig(field string, cfg config
 	return nil
 }
 
-func (gs *GeneratedStructImpl) SetFieldGenerationFunction(field string,
+func (gs *GeneratedStructImpl[T]) SetFieldGenerationFunction(field string,
 	functionHolder core.FunctionHolder) {
-	kind := gs.fieldNodeMap[field].data.GetType().Kind()
-	generator := gs.generatedFields[field].GeneratedFieldConfig
-	generator.GenerationFunctions[kind] = functionHolder
-	gs.generatedFields[field].UpdateCurrentFunction = true
+
+	// kind := gs.fieldNodeMap[field].data.GetType().Kind()
+	// _ = functionHolder.(*core.FunctionHolderWithNoArgs)
+	gs.generatedFields[field].GeneratedField.GenerationFunctions[functionHolder.Kind()] = functionHolder
 }
 
-func (gs *GeneratedStructImpl) SetFieldGenerationFunctions(field string,
+func (gs *GeneratedStructImpl[T]) SetFieldGenerationFunctions(field string,
 	defaultGenerationFunctions core.DefaultGenerationFunctions) {
 	gs.generatedFields[field].GenerationFunctions = defaultGenerationFunctions
-	gs.generatedFields[field].UpdateCurrentFunction = true
 }
 
-func (gs *GeneratedStructImpl) SetGenerationConfig(config config.Config) {
+func (gs *GeneratedStructImpl[T]) SetGenerationConfig(config config.Config) {
 	for name, field := range gs.fieldNodeMap {
 		if field.HasChildren() {
 			continue
@@ -152,11 +177,11 @@ func (gs *GeneratedStructImpl) SetGenerationConfig(config config.Config) {
 	}
 }
 
-func (gs *GeneratedStructImpl) SetFieldGenerationValueConfig(field string, config config.GenerationValueConfig) {
+func (gs *GeneratedStructImpl[T]) SetFieldGenerationValueConfig(field string, config config.GenerationValueConfig) {
 	gs.generatedFields[field].GenerationValueConfig = config
 }
 
-func (gs *GeneratedStructImpl) SetGenerationValueConfig(config config.GenerationValueConfig) {
+func (gs *GeneratedStructImpl[T]) SetGenerationValueConfig(config config.GenerationValueConfig) {
 	for name, field := range gs.fieldNodeMap {
 		if field.HasChildren() {
 			continue
@@ -166,25 +191,54 @@ func (gs *GeneratedStructImpl) SetGenerationValueConfig(config config.Generation
 }
 
 // GetFieldValueGenerationConfig implements GeneratedStruct.
-func (gs *GeneratedStructImpl) GetFieldValueGenerationConfig(field string) config.GenerationValueConfig {
+func (gs *GeneratedStructImpl[T]) GetFieldValueGenerationConfig(field string) config.GenerationValueConfig {
 	return gs.generatedFields[field].GenerationValueConfig
 }
 
 // GetFieldValueGenerationConfig implements GeneratedStruct.
-func (gs *GeneratedStructImpl) GetFieldGenerationConfig(field string) config.Config {
+func (gs *GeneratedStructImpl[T]) GetFieldGenerationConfig(field string) config.Config {
 	k := gs.generatedFields[field].GeneratedField.Value.Kind()
 	return gs.generatedFields[field].GeneratedField.GenerationFunctions[k].GetConfig()
 }
 
 // GetValueGenerationConfig implements GeneratedStruct.
-func (gs *GeneratedStructImpl) GetValueGenerationConfig() config.GenerationValueConfig {
+func (gs *GeneratedStructImpl[T]) GetValueGenerationConfig() config.GenerationValueConfig {
 	return gs.generatedFieldConfig.GenerationValueConfig
 }
 
-func (gs *GeneratedStructImpl) generateFields() {
+func (gs *GeneratedStructImpl[T]) SetFieldFromTask(field string, task generator.Task, params ...any) error {
+	taskProperties, err := generator.CreateTaskProperties(field, generator.GetTagForTask(generator.TaskName(task.Name()), params...))
+	if err != nil {
+		return err
+	}
+
+	gs.SetFieldGenerationFunction(field, core.NewFunctionHolderNoArgs(task.GenerationFunction(*taskProperties)))
+	return nil
+
+}
+
+func ToType[T any](gs DynamicStructModifier) T {
+	return dreflect.ConvertToType[T](gs.Instance())
+}
+
+func ToPointerType[T any](gs DynamicStructModifier) *T {
+	return dreflect.ConvertToType[*T](gs.New())
+}
+
+func (gs *GeneratedStructImpl[T]) generateFields() {
 	for k, genFunc := range gs.generatedFields {
 		if err := gs.Set(k, genFunc.Generate()); err != nil {
-			fmt.Println(err)
+			fmt.Println("E", err)
 		}
 	}
+
+}
+
+func (gs *GeneratedStructImpl[T]) Instance() T {
+	return gs.instance
+}
+
+func (gs *GeneratedStructImpl[T]) New() *T {
+	gs.DynamicStructModifierImpl.New()
+	return &gs.instance
 }

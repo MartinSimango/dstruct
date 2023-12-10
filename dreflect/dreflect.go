@@ -20,11 +20,15 @@ func GetSliceType(slice any) reflect.Type {
 	return reflect.TypeOf(slice).Elem()
 }
 
+func ConvertToType[T any](val any) T {
+	return Convert(reflect.ValueOf(val), reflect.TypeOf(*new(T))).Interface().(T)
+}
+
 // Convert extends the reflect.Convert function an proceeds to convert subtypes
 func Convert(value reflect.Value, t reflect.Type) reflect.Value {
 	defer func() {
 		if r := recover(); r != nil {
-			panic(fmt.Sprintf("dreflect.Convert: value of type %s cannot be converted to type %s", value.Type(), t))
+			panic(fmt.Sprintf("dreflect.Convert: value of type %v cannot be converted to type %v", value.Type(), t))
 		}
 	}()
 	dst := reflect.New(t).Elem()

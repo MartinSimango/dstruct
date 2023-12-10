@@ -16,8 +16,9 @@ var _ FunctionHolder = &NumberFunctionHolder{}
 func NewNumberFunctionHolder(f NumberFunctionHolderFunc, cfg config.NumberConfig) *NumberFunctionHolder {
 	return &NumberFunctionHolder{
 		BaseFunctionHolder: BaseFunctionHolder{
-			config: config.NewConfigBuilder().WithNumberConfig(cfg).Build(),
-			fun:    f,
+			config:             config.NewConfigBuilder().WithNumberConfig(cfg).Build(),
+			fun:                f,
+			generationFunction: f(cfg),
 		},
 	}
 }

@@ -170,19 +170,20 @@ func (db *treeBuilderImpl) buildStruct(tree *Node[structField]) any {
 func (dsb *treeBuilderImpl) addFieldToTree(name string, typ interface{}, pkgPath string, anonymous bool, tag reflect.StructTag, root *Node[structField]) reflect.Type {
 	value := reflect.ValueOf(typ)
 	if !value.IsValid() {
-		panic(fmt.Sprintf("Cannot determine type of field %s", name))
+		panic(fmt.Sprintf("Cannot determine type of field '%s'", name))
 	}
 	if root.data.numberOfSubFields == nil {
 		root.data.numberOfSubFields = new(int)
 	} else {
 		*root.data.numberOfSubFields++
 	}
-
+	goType := reflect.TypeOf(value.Interface())
 	field := &structField{
 		name:      name,
 		value:     value,
 		tag:       tag,
-		typ:       reflect.TypeOf(value.Interface()),
+		typ:       goType,
+		goType:    goType,
 		pkgPath:   pkgPath,
 		anonymous: anonymous,
 		jsonName:  strings.Split(tag.Get("json"), ",")[0],
@@ -193,6 +194,7 @@ func (dsb *treeBuilderImpl) addFieldToTree(name string, typ interface{}, pkgPath
 
 	root.AddNode(name, field)
 
+	// don't add struct fields if special kind
 	switch value.Kind() {
 	case reflect.Struct:
 		field.typ = dsb.addStructFields(value, root.children[name], 0, anonymous)

@@ -1,6 +1,8 @@
 package core
 
 import (
+	"reflect"
+
 	"github.com/MartinSimango/dstruct/generator"
 	"github.com/MartinSimango/dstruct/generator/config"
 )
@@ -11,6 +13,7 @@ type FunctionHolder interface {
 	GetConfig() config.Config
 	SetConfig(cfg config.Config)
 	Copy() FunctionHolder
+	Kind() reflect.Kind
 }
 
 type BaseFunctionHolder struct {
@@ -48,4 +51,8 @@ func (c *BaseFunctionHolder) Copy() BaseFunctionHolder {
 		config:             configCopy,
 		generationFunction: c.generationFunction,
 	}
+}
+
+func (c *BaseFunctionHolder) Kind() reflect.Kind {
+	return c.generationFunction.Kind()
 }

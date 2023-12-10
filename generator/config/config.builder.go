@@ -3,6 +3,7 @@ package config
 type ConfigBuilder interface {
 	WithNumberConfig(NumberConfig) ConfigBuilder
 	WithSliceConfig(SliceConfig) ConfigBuilder
+	WithDateConfig(DateConfig) ConfigBuilder
 	Build() *ConfigImpl
 }
 
@@ -27,6 +28,11 @@ func (cb *ConfigBuilderImpl) WithNumberConfig(nc NumberConfig) ConfigBuilder {
 // WithSliceConfig implements ConfigBuilder.
 func (cb *ConfigBuilderImpl) WithSliceConfig(sc SliceConfig) ConfigBuilder {
 	cb.config.SliceConfig = sc
+	return cb
+}
+
+func (cb *ConfigBuilderImpl) WithDateConfig(dc DateConfig) ConfigBuilder {
+	cb.config.DateConfig = dc
 	return cb
 }
 

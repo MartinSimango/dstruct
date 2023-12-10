@@ -46,14 +46,20 @@ type GeneratedField struct {
 func NewGeneratedField(fqn string,
 	value reflect.Value,
 	tag reflect.StructTag,
-	generatedFieldConfig GeneratedFieldConfig) *GeneratedField {
-	g := &GeneratedField{
+	generatedFieldConfig GeneratedFieldConfig,
+	config config.Config) *GeneratedField {
+	generateField := &GeneratedField{
 		Name:                 fqn,
 		Value:                value,
 		Tag:                  tag,
 		GeneratedFieldConfig: generatedFieldConfig,
 	}
-	return g
+	if value.Kind() == reflect.Slice {
+		generatedFieldConfig.GenerationFunctions[value.Kind()] =
+			NewSliceFunctionHolder(GenerateSliceFunc, generateField, config, generateField.GenerationFunctions)
+
+	}
+	return generateField
 }
 
 func (field *GeneratedField) checkForRecursiveDefinition(fail bool) bool {
@@ -121,13 +127,11 @@ func (field *GeneratedField) setStructValues() {
 }
 
 func (field *GeneratedField) getGenerationFunction() generator.GenerationFunction {
+
 	kind := field.Value.Kind()
 	tags := field.Tag
 
-	// TODO see if needed
 	switch kind {
-	case reflect.Slice:
-		return GenerateSliceFunc(field, nil)
 	case reflect.Struct:
 		return GenerateStructFunc(field)
 	case reflect.Ptr:
@@ -194,5 +198,6 @@ func (field *GeneratedField) getGenerationFunction() generator.GenerationFunctio
 		}
 		return task.GenerationFunction(*taskProperties)
 	}
+
 	return field.GenerationFunctions[kind].GetFunction()
 }
