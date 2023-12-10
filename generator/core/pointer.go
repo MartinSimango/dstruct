@@ -28,6 +28,7 @@ func GeneratePointerValueFunc(field *GeneratedField) generator.GenerationFunctio
 			return field.Value.Interface()
 
 		},
+		kind: reflect.Ptr,
 		args: []any{field},
 	}
 

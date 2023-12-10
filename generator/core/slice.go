@@ -8,7 +8,7 @@ import (
 	"github.com/MartinSimango/dstruct/generator/config"
 )
 
-func GenerateSliceFunc(field *GeneratedField, config config.Config) generator.GenerationFunction {
+func GenerateSliceFunc(field *GeneratedField, config config.Config, generationFunctions DefaultGenerationFunctions) generator.GenerationFunction {
 	return &coreGenerationFunction{
 		_func: func(parameters ...any) any {
 
@@ -25,11 +25,13 @@ func GenerateSliceFunc(field *GeneratedField, config config.Config) generator.Ge
 
 			for i := 0; i < len; i++ {
 				elemValue := reflect.ValueOf(sliceElement.Interface()).Elem()
+				fieldConfig := NewGenerateFieldConfig(field.GenerationFunctions[reflect.Slice].GetConfig(), field.GenerationValueConfig)
+				fieldConfig.GenerationFunctions = generationFunctions
 				newField := &GeneratedField{
 					Name:                 fmt.Sprintf("%s#%d", field.Name, i),
 					Value:                elemValue,
 					Tag:                  field.Tag,
-					GeneratedFieldConfig: NewGenerateFieldConfig(field.GenerationFunctions[reflect.Slice].GetConfig(), field.GenerationValueConfig),
+					GeneratedFieldConfig: fieldConfig,
 					Parent:               field,
 				}
 
@@ -41,6 +43,7 @@ func GenerateSliceFunc(field *GeneratedField, config config.Config) generator.Ge
 
 		},
 		args: []any{field},
+		kind: reflect.Slice,
 	}
 
 }

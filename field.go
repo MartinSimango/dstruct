@@ -11,6 +11,7 @@ type structField struct {
 	tag               reflect.StructTag
 	value             reflect.Value
 	typ               reflect.Type
+	goType            reflect.Type
 	pkgPath           string
 	anonymous         bool
 	jsonName          string

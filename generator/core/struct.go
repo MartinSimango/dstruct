@@ -1,6 +1,8 @@
 package core
 
 import (
+	"reflect"
+
 	"github.com/MartinSimango/dstruct/generator"
 )
 
@@ -13,6 +15,7 @@ func GenerateStructFunc(field *GeneratedField) generator.GenerationFunction {
 			return field.Value.Interface()
 		},
 		args: []any{field},
+		kind: reflect.Struct,
 	}
 
 }

@@ -1,6 +1,8 @@
 package core
 
 import (
+	"reflect"
+
 	"github.com/MartinSimango/dstruct/generator"
 	"github.com/takahiromiyamoto/go-xeger"
 )
@@ -16,5 +18,6 @@ func GenerateStringFromRegexFunc(regex string) generator.GenerationFunction {
 			return x.Generate()
 		},
 		args: []any{regex},
+		kind: reflect.Slice,
 	}
 }

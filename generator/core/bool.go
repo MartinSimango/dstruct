@@ -1,6 +1,8 @@
 package core
 
 import (
+	"reflect"
+
 	"github.com/MartinSimango/dstruct/generator"
 )
 
@@ -10,6 +12,6 @@ func GenerateBoolFunc() generator.GenerationFunction {
 		_func: func(parameters ...any) any {
 			return generateNum(0, 1) == 0
 		},
-		// Config: ,
+		kind: reflect.Bool,
 	}
 }
