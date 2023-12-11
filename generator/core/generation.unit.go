@@ -42,7 +42,7 @@ func (gu *GenerationUnit) Generate() any {
 	return gu.latestValue
 }
 
-// When did does a new fuc
+// TODO when does config need to be changed?
 
 func (gu *GenerationUnit) configChanged(previousConfig config.GenerationValueConfig) bool {
 

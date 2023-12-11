@@ -45,7 +45,6 @@ func NewDefaultGenerationFunctions(cfg config.Config) DefaultGenerationFunctions
 	defaultGenerationFunctions[reflect.Float64] = NewGenerateNumberFunctionHolder[float64](cfg.Number())
 	defaultGenerationFunctions[reflect.Bool] = NewFunctionHolderNoArgs(GenerateBoolFunc())
 	defaultGenerationFunctions[reflect.Ptr] = NewFunctionHolderNoArgs(GenerateNilValueFunc())
-
 	return defaultGenerationFunctions
 
 }

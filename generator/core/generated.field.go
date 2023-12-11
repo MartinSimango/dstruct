@@ -41,21 +41,29 @@ type GeneratedField struct {
 	GeneratedFieldConfig
 	Parent       *GeneratedField
 	PointerValue *reflect.Value
+	customTypes  map[reflect.Type]FunctionHolder
+	goType       reflect.Type
 }
 
 func NewGeneratedField(fqn string,
 	value reflect.Value,
 	tag reflect.StructTag,
 	generatedFieldConfig GeneratedFieldConfig,
-	config config.Config) *GeneratedField {
+	config config.Config,
+	customTypes map[reflect.Type]FunctionHolder,
+	goType reflect.Type,
+
+) *GeneratedField {
 	generateField := &GeneratedField{
 		Name:                 fqn,
 		Value:                value,
 		Tag:                  tag,
 		GeneratedFieldConfig: generatedFieldConfig,
+		customTypes:          customTypes,
+		goType:               goType,
 	}
 	if value.Kind() == reflect.Slice {
-		generatedFieldConfig.GenerationFunctions[value.Kind()] =
+		generatedFieldConfig.GenerationFunctions[reflect.Slice] =
 			NewSliceFunctionHolder(GenerateSliceFunc, generateField, config, generateField.GenerationFunctions)
 
 	}
@@ -90,6 +98,10 @@ func (field *GeneratedField) checkForRecursiveDefinition(fail bool) bool {
 }
 
 func (field *GeneratedField) SetValue() bool {
+	if customType := field.customTypes[field.goType]; customType != nil {
+		field.Value.Set(reflect.ValueOf(customType.GetFunction().Generate()))
+		return false
+	}
 	kind := field.Value.Kind()
 	switch kind {
 	case reflect.Struct:
@@ -121,12 +133,18 @@ func (field *GeneratedField) setStructValues() {
 			Tag:                  field.Value.Type().Field(j).Tag,
 			GeneratedFieldConfig: field.GeneratedFieldConfig.Copy(field.Value.Field(j).Kind()),
 			Parent:               field,
+			customTypes:          field.customTypes,
+			goType:               field.Value.Field(j).Type(),
 		}
 		structField.SetValue()
 	}
 }
 
 func (field *GeneratedField) getGenerationFunction() generator.GenerationFunction {
+
+	if field.customTypes[field.goType] != nil {
+		return field.customTypes[field.goType].GetFunction()
+	}
 
 	kind := field.Value.Kind()
 	tags := field.Tag
@@ -176,6 +194,7 @@ func (field *GeneratedField) getGenerationFunction() generator.GenerationFunctio
 	format := tags.Get("format")
 
 	switch format {
+	// TODO replace or remove this
 	case "date-time":
 		return GenerateDateTimeFunc()
 	}

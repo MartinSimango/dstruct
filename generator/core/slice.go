@@ -33,6 +33,8 @@ func GenerateSliceFunc(field *GeneratedField, config config.Config, generationFu
 					Tag:                  field.Tag,
 					GeneratedFieldConfig: fieldConfig,
 					Parent:               field,
+					customTypes:          field.customTypes,
+					goType:               elemValue.Type(),
 				}
 
 				newField.SetValue()

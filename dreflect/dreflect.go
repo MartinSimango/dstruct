@@ -82,7 +82,8 @@ func convert(src reflect.Value, dst reflect.Value) reflect.Value {
 		if src.IsNil() {
 			return reflect.Zero(dst.Type())
 		}
-		dstSliceType := GetSliceType(dst.Interface())
+
+		dstSliceType := dst.Type().Elem()
 
 		newSliceType := getSliceArrayType(src, dstSliceType)
 		newSlice := reflect.MakeSlice(reflect.SliceOf(newSliceType), src.Len(), src.Cap())

@@ -1,7 +1,6 @@
 package core
 
 import (
-	"reflect"
 	"time"
 
 	"github.com/MartinSimango/dstruct/generator"
@@ -17,7 +16,7 @@ func GenerateDateTimeFunc() generator.GenerationFunction {
 		_func: func(parameters ...any) any {
 			return time.Now().UTC().Format(time.RFC3339)
 		},
-		kind: reflect.String,
+		kind: NewKind(time.Time{}),
 	}
 
 }
@@ -27,9 +26,11 @@ func GenerateDateTimeBetweenDatesFunc(dc config.DateConfig) generator.Generation
 	// TODO have a proper implementation
 	return &coreGenerationFunction{
 		_func: func(parameters ...any) any {
-			return time.Now().UTC().Format(time.RFC3339)
+			timeDiffInSeconds := dc.GetDateEnd().Sub(dc.GetDateStart()).Seconds()
+			return dc.GetDateStart().Add(time.Second * time.Duration(generateNum(0, timeDiffInSeconds)))
+
 		},
-		kind: reflect.String,
+		kind: NewKind(time.Time{}),
 	}
 
 }
