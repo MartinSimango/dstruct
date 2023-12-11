@@ -56,68 +56,88 @@ type GeneratedStructImpl[T any] struct {
 	generatedFieldConfig core.GeneratedFieldConfig
 	config               config.Config
 	instance             T
-	excludedTypes        map[reflect.Type]bool
+	customTypes          map[reflect.Type]core.FunctionHolder
+}
+
+type CustomType struct {
+	Value          any
+	FunctionHolder core.FunctionHolder
 }
 
 // var _ GeneratedStruct = &GeneratedStructImpl[int]{}
 
 func NewGeneratedStruct[T any](val T) *GeneratedStructImpl[T] {
+
 	return NewGeneratedStructWithConfig(val, config.NewConfig())
 }
 
 func NewGeneratedStructWithConfig[T any](val T,
-	cfg config.Config) *GeneratedStructImpl[T] {
+	cfg config.Config,
+	customTypes ...CustomType) *GeneratedStructImpl[T] {
 	generatedStruct := &GeneratedStructImpl[T]{
 		DynamicStructModifierImpl: ExtendStruct(val).Build().(*DynamicStructModifierImpl),
 		generatedFields:           make(GenerationFields),
 		config:                    cfg,
 		generatedFieldConfig:      core.NewGenerateFieldConfig(cfg, config.DefaultGenerationValueConfig()),
-		excludedTypes:             make(map[reflect.Type]bool),
+		customTypes:               make(map[reflect.Type]core.FunctionHolder),
 	}
-	generatedStruct.ExcludeType(time.Time{}, core.DefaultDateFunctionHolder(cfg.Date()))
+
+	for _, v := range customTypes {
+		generatedStruct.addCustomType(v)
+	}
+	generatedStruct.addCustomTypes()
 	generatedStruct.populateGeneratedFields(generatedStruct.root)
 	return generatedStruct
 }
 
-func (gs *GeneratedStructImpl[T]) ExcludeType(val any, function core.FunctionHolder) {
-	gs.excludedTypes[reflect.TypeOf(val)] = true
+func (gs *GeneratedStructImpl[T]) addCustomTypes() {
+	gs.addCustomType(CustomType{time.Time{}, core.DefaultDateFunctionHolder(gs.config.Date())})
+
+}
+
+func (gs *GeneratedStructImpl[T]) addCustomType(customType CustomType) {
+	gs.customTypes[reflect.TypeOf(customType.Value)] = customType.FunctionHolder
+	gs.generatedFieldConfig.GenerationFunctions[customType.FunctionHolder.Kind()] = customType.FunctionHolder
+
+}
+
+func (gs *GeneratedStructImpl[T]) createGeneratedField(field *Node[structField], kind reflect.Kind) *core.GeneratedField {
+	return core.NewGeneratedField(field.data.fqn,
+		field.data.value,
+		field.data.tag,
+		gs.generatedFieldConfig.Copy(kind),
+		gs.config.Copy(), // TODO account for nil
+		gs.customTypes,
+		field.data.goType,
+	)
 }
 
 func (gs *GeneratedStructImpl[T]) populateGeneratedFields(node *Node[structField]) {
-
 	for _, field := range node.children {
+
 		if field.HasChildren() {
-			if gs.excludedTypes[field.data.goType] {
-				field.data.value.Set(reflect.ValueOf(time.Now()))
+			if customType := gs.customTypes[field.data.goType]; customType != nil {
+				gs.generatedFields[field.data.fqn] = core.NewGenerationUnit(gs.createGeneratedField(field, customType.Kind()))
 				continue
 			}
 			gs.populateGeneratedFields(field)
 			continue
 		}
-		fieldKind := field.data.value.Kind()
-
-		generatedField := core.NewGeneratedField(field.data.fqn,
-			field.data.value,
-			field.data.tag,
-			gs.generatedFieldConfig.Copy(fieldKind),
-			gs.config.Copy(), // TODO account for nil
-		)
-
-		gs.generatedFields[field.data.fqn] = core.NewGenerationUnit(generatedField)
-
+		gs.generatedFields[field.data.fqn] = core.NewGenerationUnit(gs.createGeneratedField(field, field.data.value.Kind()))
 	}
 
 }
 
 func (gs *GeneratedStructImpl[T]) Generate() {
+
 	gs.generateFields()
 
-	v := any(*new(T))
-	switch v.(type) {
+	switch any(*new(T)).(type) {
 	case nil:
 		gs.instance = gs.DynamicStructModifierImpl.Instance().(T)
 		return
 	}
+
 	gs.instance = ToType[T](gs.DynamicStructModifierImpl)
 }
 
@@ -127,12 +147,16 @@ func (gs *GeneratedStructImpl[T]) GenerateAndUpdate() {
 }
 
 func (gs *GeneratedStructImpl[T]) changeChildrenConfig(node *Node[structField], cfg config.Config) {
-	for _, v := range node.children {
-		if v.HasChildren() {
-			gs.changeChildrenConfig(v, cfg)
+	for _, field := range node.children {
+		if customType := gs.customTypes[field.data.goType]; customType != nil {
+			gs.generatedFields[field.data.fqn].GenerationFunctions[customType.Kind()].SetConfig(cfg)
 			continue
 		}
-		gs.generatedFields[v.data.fqn].GenerationFunctions[v.data.typ.Kind()].SetConfig(cfg)
+		if field.HasChildren() {
+			gs.changeChildrenConfig(field, cfg)
+			continue
+		}
+		gs.generatedFields[field.data.fqn].GenerationFunctions[field.data.typ.Kind()].SetConfig(cfg)
 	}
 
 }
@@ -228,10 +252,9 @@ func ToPointerType[T any](gs DynamicStructModifier) *T {
 func (gs *GeneratedStructImpl[T]) generateFields() {
 	for k, genFunc := range gs.generatedFields {
 		if err := gs.Set(k, genFunc.Generate()); err != nil {
-			fmt.Println("E", err)
+			fmt.Println(err)
 		}
 	}
-
 }
 
 func (gs *GeneratedStructImpl[T]) Instance() T {

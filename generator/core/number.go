@@ -20,7 +20,6 @@ func GenerateNumberFunc[n config.Number](cfg config.NumberConfig) generator.Gene
 			return generateNum(*min, *max)
 		},
 		kind: reflect.ValueOf(*new(n)).Kind(),
-		args: []any{min, max},
 	}
 
 }

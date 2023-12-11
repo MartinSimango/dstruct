@@ -1,8 +1,6 @@
 package core
 
 import (
-	"reflect"
-
 	"github.com/MartinSimango/dstruct/generator"
 	"github.com/MartinSimango/dstruct/generator/config"
 )
@@ -39,7 +37,8 @@ func (c *SliceFunctionHolder) GetFunction() generator.GenerationFunction {
 
 func (c *SliceFunctionHolder) Copy() FunctionHolder {
 	return &SliceFunctionHolder{
-		BaseFunctionHolder:  c.BaseFunctionHolder.Copy(),
-		generationFunctions: c.generationFunctions.Copy(reflect.Slice),
+		BaseFunctionHolder: c.BaseFunctionHolder.Copy(),
+		// TODO address this
+		// generationFunctions: c.generationFunctions.Copy(reflect.Slice),
 	}
 }
