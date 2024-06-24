@@ -20,9 +20,9 @@ var _ Builder = &treeBuilderImpl{}
 func createRoot() *Node[structField] {
 	return &Node[structField]{
 		data: &structField{
-			name:  "#root",
-			value: reflect.ValueOf(nil),
-			fqn:   "#root",
+			name:               "#root",
+			value:              reflect.ValueOf(nil),
+			fullyQualifiedName: "#root",
 		},
 		children: make(map[string]*Node[structField]),
 	}
@@ -76,7 +76,7 @@ func newBuilderFromNode(node *Node[structField], resetFQN bool) *treeBuilderImpl
 
 func resetNodeFieldsFQN(node *Node[structField]) *Node[structField] {
 	for _, v := range node.children {
-		v.data.fqn = getFQN(node.data.name, v.data.name)
+		v.data.fullyQualifiedName = getFQN(node.data.name, v.data.name)
 		resetNodeFieldsFQN(v)
 	}
 	return node
@@ -119,7 +119,7 @@ func (dsb *treeBuilderImpl) GetField(field string) Builder {
 func (dsb *treeBuilderImpl) NewBuilderFromField(field string) Builder {
 	copyNode := dsb.getNode(field).Copy()
 	copyNode.data.name = "#root"
-	copyNode.data.fqn = "#root"
+	copyNode.data.fullyQualifiedName = "#root"
 	return newBuilderFromNode(copyNode, true)
 }
 
@@ -147,7 +147,7 @@ func (db *treeBuilderImpl) Build() DynamicStructModifier {
 	// Ensure that the current node is treated is root when struct is built
 	if db.root.parent != nil {
 		rootCopy.data.name = "#root"
-		rootCopy.data.fqn = "#root"
+		rootCopy.data.fullyQualifiedName = "#root"
 		rootCopy = resetNodeFieldsFQN(rootCopy)
 	}
 	return newStruct(db.buildStruct(rootCopy), rootCopy)
@@ -190,7 +190,7 @@ func (dsb *treeBuilderImpl) addFieldToTree(name string, typ interface{}, pkgPath
 	}
 	field.structIndex = new(int)
 	*field.structIndex = *root.data.numberOfSubFields
-	field.fqn = getFQN(root.data.GetFieldFQName(), field.name)
+	field.fullyQualifiedName = getFQN(root.data.GetFieldFullyQualifiedName(), field.name)
 
 	root.AddNode(name, field)
 

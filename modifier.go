@@ -65,8 +65,8 @@ func newStruct(strct any, rootNode *Node[structField]) *DynamicStructModifierImp
 func (dm *DynamicStructModifierImpl) createFieldToNodeMappings(rootNode *Node[structField]) {
 
 	for _, field := range rootNode.children {
-		dm.fieldNodeMap[field.data.fqn] = field
-		dm.fieldData[field.data.fqn] = *field.data
+		dm.fieldNodeMap[field.data.fullyQualifiedName] = field
+		dm.fieldData[field.data.fullyQualifiedName] = *field.data
 		dm.createFieldToNodeMappings(field)
 	}
 
