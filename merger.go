@@ -49,17 +49,17 @@ func mergeStructs(left, right Builder, parentKind reflect.Kind) (any, error) {
 			newStruct.AddField(elementName, field.data.value.Interface(), string(field.data.tag))
 			continue
 		}
-		if err := validateTypes(field.data.value, cV.data.value, field.data.fqn); err != nil {
+		if err := validateTypes(field.data.value, cV.data.value, field.data.fullyQualifiedName); err != nil {
 			return nil, err
 		}
 
 		if field.data.value.Kind() == reflect.Slice {
 			vSliceType := dreflect.GetSliceType(field.data.value.Interface())
 			cVSliceType := dreflect.GetSliceType(cV.data.value.Interface())
-			if err := validateSliceTypes(vSliceType, cVSliceType, field.data.value, cV.data.value, field.data.fqn); err != nil {
+			if err := validateSliceTypes(vSliceType, cVSliceType, field.data.value, cV.data.value, field.data.fullyQualifiedName); err != nil {
 				return nil, err
 			}
-			newStruct.RemoveField(field.data.fqn)
+			newStruct.RemoveField(field.data.fullyQualifiedName)
 			if cVSliceType.Kind() == reflect.Struct {
 				newSliceTypeStruct, err := mergeStructs(left.GetField(name),
 					right.GetField(name), reflect.Slice)
