@@ -13,7 +13,7 @@ func generateNum[n config.Number](min, max n) n {
 	return min + (n(rand.Float64() * float64(max+1-min)))
 }
 
-func GenerateNumberFunc[n config.Number](cfg config.NumberConfig) generator.GenerationFunction {
+func GenerateNumberFunc[n config.Number](cfg config.NumberRangeConfig) generator.GenerationFunction {
 	min, max := getNumberRange[n](cfg)
 	return &coreGenerationFunction{
 		_func: func(parameters ...any) any {
@@ -36,7 +36,7 @@ func GenerateSequential(seed int) generator.GenerationFunction {
 	}
 }
 
-func getNumberRange[n config.Number](cfg config.NumberConfig) (*n, *n) {
+func getNumberRange[n config.Number](cfg config.NumberRangeConfig) (*n, *n) {
 	var min, max any
 	v := any(*new(n))
 	switch v.(type) {
@@ -72,6 +72,6 @@ func getNumberRange[n config.Number](cfg config.NumberConfig) (*n, *n) {
 	return any(min).(*n), any(max).(*n)
 }
 
-func NewGenerateNumberFunctionHolder[N config.Number](numberConfig config.NumberConfig) *NumberFunctionHolder {
+func NewGenerateNumberFunctionHolder[N config.Number](numberConfig config.NumberRangeConfig) *NumberFunctionHolder {
 	return NewNumberFunctionHolder(GenerateNumberFunc[N], numberConfig)
 }

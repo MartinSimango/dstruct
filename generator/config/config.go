@@ -1,169 +1,60 @@
+// Package config provides the configuration for the generation of dynamic structs.
 package config
 
-type ConfigType uint
-
-type ValueGenerationType uint8
-
-const (
-	Generate     ValueGenerationType = iota // will generate all field
-	GenerateOnce                            // will generate the fields once
-	UseDefaults
-)
-
-type RecursiveDefinition struct {
-	Allow bool
-	Depth uint
-}
-
-type GenerationValueConfig struct {
-	ValueGenerationType  ValueGenerationType
-	SetNonRequiredFields bool
-	RecursiveDefinition  RecursiveDefinition
-}
-
-func DefaultGenerationValueConfig() GenerationValueConfig {
-	return GenerationValueConfig{
-		ValueGenerationType:  UseDefaults,
-		SetNonRequiredFields: false,
-		RecursiveDefinition: RecursiveDefinition{
-			Allow: false,
-			Depth: 1,
-		},
-	}
-}
-
-func NewConfig() *ConfigImpl {
-	return NewConfigBuilder().
-		WithNumberConfig(NewNumberConfig()).
-		WithSliceConfig(NewSliceConfig()).
-		WithDateConfig(NewDateConfig()).
-		Build()
-}
-
+// Config represents the generation config for a dynamic struct.
 type Config interface {
-	ConfigBuilder
-	Number() NumberConfig
+
+	// Number returns the number configuration.
+	Number() NumberRangeConfig
+
+	// Slice returns the slice configuration.
 	Slice() SliceConfig
-	Date() DateConfig
+
+	// Date returns the date configuration.
+	Date() DateRangeConfig
+
+	// SetSliceLength sets the length range for the slice.
 	SetSliceLength(min, max int) Config
+
+	// SetIntRange sets the range for int values.
 	SetIntRange(min, max int) Config
+
+	// SetInt8Range sets the range for int8 values.
 	SetInt8Range(min, max int8) Config
+
+	// SetInt16Range sets the range for int16 values.
 	SetInt16Range(min, max int16) Config
+
+	// SetInt32Range sets the range for int32 values.
 	SetInt32Range(min, max int32) Config
+
+	// SetInt64Range sets the range for int64 values.
 	SetInt64Range(min, max int64) Config
+
+	// SetFloat32Range sets the range for float32 values.
 	SetFloat32Range(min, max float32) Config
+
+	// SetFloat64Range sets the range for float64 values.
 	SetFloat64Range(min, max float64) Config
+
+	// SetUIntRange sets the range for uint values.
 	SetUIntRange(min, max uint) Config
+
+	// SetUInt8Range sets the range for uint8 values.
 	SetUInt8Range(min, max uint8) Config
+
+	// SetUInt16Range sets the range for uint16 values.
 	SetUInt16Range(min, max uint16) Config
+
+	// SetUInt32Range sets the range for uint32 values.
 	SetUInt32Range(min, max uint32) Config
+
+	// SetUInt64Range sets the range for the uint64 value.
 	SetUInt64Range(min, max uint64) Config
+
+	// SetUIntPtrRange sets the range for the uintptr value.
 	SetUIntPtr(min, max uintptr) Config
 
+	// Copy returns a copy of the configuration.
 	Copy() Config
-}
-
-type ConfigImpl struct {
-	ConfigBuilderImpl
-	SliceConfig  SliceConfig
-	NumberConfig NumberConfig
-	DateConfig   DateConfig
-}
-
-var _ Config = &ConfigImpl{}
-
-func (c *ConfigImpl) Copy() Config {
-	newConfig := &ConfigImpl{}
-	if c.SliceConfig != nil {
-		newConfig.SliceConfig = c.SliceConfig.Copy()
-	}
-
-	if c.NumberConfig != nil {
-		newConfig.NumberConfig = c.NumberConfig.Copy()
-	}
-
-	return newConfig
-
-}
-
-func (c *ConfigImpl) Slice() SliceConfig {
-	return c.SliceConfig
-}
-
-func (c *ConfigImpl) Date() DateConfig {
-	return c.DateConfig
-
-}
-
-func (c *ConfigImpl) Number() NumberConfig {
-	return c.NumberConfig
-}
-
-func (c *ConfigImpl) SetSliceLength(min, max int) Config {
-	c.SliceConfig.SetLengthRange(min, max)
-	return c
-}
-
-func (c *ConfigImpl) SetIntRange(min, max int) Config {
-	c.NumberConfig.Int().SetRange(min, max)
-	return c
-}
-
-func (c *ConfigImpl) SetInt8Range(min, max int8) Config {
-	c.NumberConfig.Int8().SetRange(min, max)
-	return c
-}
-
-func (c *ConfigImpl) SetInt16Range(min, max int16) Config {
-	c.NumberConfig.Int16().SetRange(min, max)
-	return c
-}
-
-func (c *ConfigImpl) SetInt32Range(min, max int32) Config {
-	c.NumberConfig.Int32().SetRange(min, max)
-	return c
-}
-
-func (c *ConfigImpl) SetInt64Range(min, max int64) Config {
-	c.NumberConfig.Int64().SetRange(min, max)
-	return c
-}
-
-func (c *ConfigImpl) SetFloat32Range(min, max float32) Config {
-	c.NumberConfig.Float32().SetRange(min, max)
-	return c
-}
-func (c *ConfigImpl) SetFloat64Range(min, max float64) Config {
-	c.NumberConfig.Float64().SetRange(min, max)
-	return c
-}
-
-func (c *ConfigImpl) SetUIntRange(min, max uint) Config {
-	c.NumberConfig.UInt().SetRange(min, max)
-	return c
-}
-
-func (c *ConfigImpl) SetUInt8Range(min, max uint8) Config {
-	c.NumberConfig.UInt8().SetRange(min, max)
-	return c
-}
-
-func (c *ConfigImpl) SetUInt16Range(min, max uint16) Config {
-	c.NumberConfig.UInt16().SetRange(min, max)
-	return c
-}
-
-func (c *ConfigImpl) SetUInt32Range(min, max uint32) Config {
-	c.NumberConfig.UInt32().SetRange(min, max)
-	return c
-}
-
-func (c *ConfigImpl) SetUInt64Range(min, max uint64) Config {
-	c.NumberConfig.UInt64().SetRange(min, max)
-	return c
-}
-
-func (c *ConfigImpl) SetUIntPtr(min, max uintptr) Config {
-	c.NumberConfig.UIntPtr().SetRange(min, max)
-	return c
 }
