@@ -67,7 +67,7 @@ type CustomType struct {
 // var _ GeneratedStruct = &GeneratedStructImpl[int]{}
 
 func NewGeneratedStruct[T any](val T) *GeneratedStructImpl[T] {
-	return NewGeneratedStructWithConfig(val, config.NewConfig())
+	return NewGeneratedStructWithConfig(val, config.NewDstructConfig())
 }
 
 func NewGeneratedStructWithConfig[T any](val T,

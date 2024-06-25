@@ -21,13 +21,13 @@ func GenerateDateTimeFunc() generator.GenerationFunction {
 
 }
 
-func GenerateDateTimeBetweenDatesFunc(dc config.DateConfig) generator.GenerationFunction {
+func GenerateDateTimeBetweenDatesFunc(dc config.DateRangeConfig) generator.GenerationFunction {
 
 	// TODO have a proper implementation
 	return &coreGenerationFunction{
 		_func: func(parameters ...any) any {
-			timeDiffInSeconds := dc.GetDateEnd().Sub(dc.GetDateStart()).Seconds()
-			return dc.GetDateStart().Add(time.Second * time.Duration(generateNum(0, timeDiffInSeconds)))
+			timeDiffInSeconds := dc.GetEndDate().Sub(dc.GetStartDate()).Seconds()
+			return dc.GetStartDate().Add(time.Second * time.Duration(generateNum(0, timeDiffInSeconds)))
 
 		},
 		kind: NewKind(time.Time{}),
@@ -35,23 +35,23 @@ func GenerateDateTimeBetweenDatesFunc(dc config.DateConfig) generator.Generation
 
 }
 
-type DateFunctionHolderFunc func(config.DateConfig) generator.GenerationFunction
+type DateFunctionHolderFunc func(config.DateRangeConfig) generator.GenerationFunction
 
 type DateFunctionHolder struct {
 	BaseFunctionHolder
 }
 
-func NewDateFunctionHolder(f DateFunctionHolderFunc, cfg config.DateConfig) *DateFunctionHolder {
+func NewDateFunctionHolder(f DateFunctionHolderFunc, cfg config.DateRangeConfig) *DateFunctionHolder {
 	return &DateFunctionHolder{
 		BaseFunctionHolder: BaseFunctionHolder{
-			config:             config.NewConfigBuilder().WithDateConfig(cfg).Build(),
+			config:             config.NewDstructConfigBuilder().WithDateRangeConfig(cfg).Build(),
 			fun:                f,
 			generationFunction: f(cfg),
 		},
 	}
 }
 
-func DefaultDateFunctionHolder(cfg config.DateConfig) *DateFunctionHolder {
+func DefaultDateFunctionHolder(cfg config.DateRangeConfig) *DateFunctionHolder {
 	return NewDateFunctionHolder(GenerateDateTimeBetweenDatesFunc, cfg)
 }
 
