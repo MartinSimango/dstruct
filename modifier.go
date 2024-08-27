@@ -63,25 +63,23 @@ func newStruct(strct any, rootNode *Node[structField]) *DynamicStructModifierImp
 }
 
 func (dm *DynamicStructModifierImpl) createFieldToNodeMappings(rootNode *Node[structField]) {
-
 	for _, field := range rootNode.children {
 		dm.fieldNodeMap[field.data.fullyQualifiedName] = field
 		dm.fieldData[field.data.fullyQualifiedName] = *field.data
 		dm.createFieldToNodeMappings(field)
 	}
-
 }
 
 func (dm *DynamicStructModifierImpl) New() any {
 	return dm.strct
 }
+
 func (dm *DynamicStructModifierImpl) Instance() any {
 	return dreflect.GetUnderlyingPointerValue(dm.strct)
 }
 
 func (dm *DynamicStructModifierImpl) get(field string) (n *Node[structField]) {
 	return dm.fieldNodeMap[field]
-
 }
 
 func (dm *DynamicStructModifierImpl) Get(field string) (any, error) {
@@ -104,6 +102,7 @@ func isFieldExported(field string) bool {
 	}
 	return true
 }
+
 func (dm *DynamicStructModifierImpl) Set(field string, value any) error {
 	var f *Node[structField]
 	if f = dm.get(field); f == nil {
@@ -127,6 +126,8 @@ func (dm *DynamicStructModifierImpl) Set(field string, value any) error {
 	}
 
 	fieldValue.Set(dreflect.Convert(reflect.ValueOf(value), fieldValue.Type()))
+
+	// TODO: should we update the struct here? and then remove the Update and Apply methods
 
 	return nil
 }

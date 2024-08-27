@@ -6,6 +6,7 @@ import (
 	"github.com/MartinSimango/dstruct/generator"
 )
 
+// GenerateBoolFunc returns a GenerationFunction that generates a boolean value.
 func GenerateBoolFunc() generator.GenerationFunction {
 
 	return &coreGenerationFunction{

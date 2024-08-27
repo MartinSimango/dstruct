@@ -18,16 +18,21 @@ type RecursiveDefinition struct {
 	Depth uint
 }
 
-// GenerationValueConfig defines how values are generated within a dynamic struct.
-type GenerationValueConfig struct {
+// GenerationSettings defines how values are generated within a dynamic struct.
+type GenerationSettings struct {
 	ValueGenerationType  ValueGenerationType
 	SetNonRequiredFields bool
 	RecursiveDefinition  RecursiveDefinition
 }
 
-// DefaultGenerationValueConfig returns a default configuration for generation values.
-func DefaultGenerationValueConfig() GenerationValueConfig {
-	return GenerationValueConfig{
+func (gs *GenerationSettings) WithNonRequiredFields(required bool) GenerationSettings {
+	gs.SetNonRequiredFields = required
+	return *gs
+}
+
+// DefaultGenerationSettings returns a default configuration for generation values.
+func DefaultGenerationSettings() GenerationSettings {
+	return GenerationSettings{
 		ValueGenerationType:  UseDefaults,
 		SetNonRequiredFields: false,
 		RecursiveDefinition: RecursiveDefinition{
