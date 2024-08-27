@@ -8,12 +8,15 @@ import (
 	"github.com/MartinSimango/dstruct/generator/config"
 )
 
-func GenerateSliceFunc(field *GeneratedField, config config.Config, generationFunctions DefaultGenerationFunctions) generator.GenerationFunction {
+func GenerateSliceFunc(
+	field *GeneratedField,
+	config config.Config,
+	generationFunctions DefaultGenerationFunctions,
+) generator.GenerationFunction {
 	return &coreGenerationFunction{
 		_func: func(parameters ...any) any {
-
 			field := parameters[0].(*GeneratedField)
-			sliceConfig := field.GenerationFunctions[reflect.Slice].GetConfig().Slice()
+			sliceConfig := field.Config.GenerationFunctions[reflect.Slice].GetConfig().Slice()
 			sliceType := reflect.TypeOf(field.Value.Interface()).Elem()
 			min := sliceConfig.MinLength()
 			max := sliceConfig.MaxLength()
@@ -25,16 +28,19 @@ func GenerateSliceFunc(field *GeneratedField, config config.Config, generationFu
 
 			for i := 0; i < len; i++ {
 				elemValue := reflect.ValueOf(sliceElement.Interface()).Elem()
-				fieldConfig := NewGenerateFieldConfig(field.GenerationFunctions[reflect.Slice].GetConfig(), field.GenerationValueConfig)
+				fieldConfig := NewGenerateFieldConfig(
+					field.Config.GenerationFunctions[reflect.Slice].GetConfig(),
+					field.Config.GenerationSettings,
+				)
 				fieldConfig.GenerationFunctions = generationFunctions
 				newField := &GeneratedField{
-					Name:                 fmt.Sprintf("%s#%d", field.Name, i),
-					Value:                elemValue,
-					Tag:                  field.Tag,
-					GeneratedFieldConfig: fieldConfig,
-					Parent:               field,
-					customTypes:          field.customTypes,
-					goType:               elemValue.Type(),
+					Name:        fmt.Sprintf("%s#%d", field.Name, i),
+					Value:       elemValue,
+					Tag:         field.Tag,
+					Config:      fieldConfig,
+					Parent:      field,
+					customTypes: field.customTypes,
+					goType:      elemValue.Type(),
 				}
 
 				newField.SetValue()
@@ -42,10 +48,8 @@ func GenerateSliceFunc(field *GeneratedField, config config.Config, generationFu
 				slice = reflect.Append(slice, sliceElement.Elem())
 			}
 			return slice.Interface()
-
 		},
 		args: []any{field},
 		kind: reflect.Slice,
 	}
-
 }

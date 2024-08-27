@@ -7,11 +7,10 @@ import (
 )
 
 func GeneratePointerValueFunc(field *GeneratedField) generator.GenerationFunction {
-
 	return &coreGenerationFunction{
 		_func: func(parameters ...any) any {
 			field := parameters[0].(*GeneratedField)
-			if !field.GenerationValueConfig.SetNonRequiredFields {
+			if !field.Config.GenerationSettings.SetNonRequiredFields {
 				return nil
 			}
 
@@ -26,10 +25,8 @@ func GeneratePointerValueFunc(field *GeneratedField) generator.GenerationFunctio
 			}
 
 			return field.Value.Interface()
-
 		},
 		kind: reflect.Ptr,
 		args: []any{field},
 	}
-
 }

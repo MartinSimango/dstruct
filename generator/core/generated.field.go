@@ -10,35 +10,42 @@ import (
 )
 
 type GeneratedFieldConfig struct {
-	GenerationFunctions   DefaultGenerationFunctions
-	GenerationValueConfig config.GenerationValueConfig
+	GenerationFunctions DefaultGenerationFunctions
+	GenerationSettings  config.GenerationSettings
+	GenerationConfig    config.Config
 }
 
 func (gf *GeneratedFieldConfig) Copy(kind reflect.Kind) (gfc GeneratedFieldConfig) {
 	return GeneratedFieldConfig{
-		GenerationFunctions:   gf.GenerationFunctions.Copy(kind),
-		GenerationValueConfig: gf.GenerationValueConfig,
+		GenerationFunctions: gf.GenerationFunctions.Copy(kind),
+		GenerationSettings:  gf.GenerationSettings,
+		GenerationConfig:    gf.GenerationConfig.Copy(),
 	}
 }
 
 func (gf *GeneratedFieldConfig) SetConfig(cfg config.Config) {
+	gf.GenerationConfig = cfg
 	for _, v := range gf.GenerationFunctions {
 		v.SetConfig(cfg)
 	}
 }
 
-func NewGenerateFieldConfig(cfg config.Config, gvc config.GenerationValueConfig) GeneratedFieldConfig {
+func NewGenerateFieldConfig(
+	cfg config.Config,
+	settings config.GenerationSettings,
+) GeneratedFieldConfig {
 	return GeneratedFieldConfig{
-		GenerationFunctions:   NewDefaultGenerationFunctions(cfg),
-		GenerationValueConfig: gvc,
+		GenerationFunctions: NewDefaultGenerationFunctions(cfg),
+		GenerationSettings:  settings,
+		GenerationConfig:    cfg,
 	}
 }
 
 type GeneratedField struct {
-	Name  string
-	Value reflect.Value
-	Tag   reflect.StructTag
-	GeneratedFieldConfig
+	Name         string
+	Value        reflect.Value
+	Tag          reflect.StructTag
+	Config       GeneratedFieldConfig
 	Parent       *GeneratedField
 	PointerValue *reflect.Value
 	customTypes  map[reflect.Type]FunctionHolder
@@ -48,26 +55,70 @@ type GeneratedField struct {
 func NewGeneratedField(fqn string,
 	value reflect.Value,
 	tag reflect.StructTag,
-	generatedFieldConfig GeneratedFieldConfig,
-	config config.Config,
+	config GeneratedFieldConfig,
 	customTypes map[reflect.Type]FunctionHolder,
 	goType reflect.Type,
-
 ) *GeneratedField {
 	generateField := &GeneratedField{
-		Name:                 fqn,
-		Value:                value,
-		Tag:                  tag,
-		GeneratedFieldConfig: generatedFieldConfig,
-		customTypes:          customTypes,
-		goType:               goType,
+		Name:        fqn,
+		Value:       value,
+		Tag:         tag,
+		Config:      config,
+		customTypes: customTypes,
+		goType:      goType,
 	}
+	// TODO: add custom type to GenerationFunctions
 	if value.Kind() == reflect.Slice {
-		generatedFieldConfig.GenerationFunctions[reflect.Slice] =
-			NewSliceFunctionHolder(GenerateSliceFunc, generateField, config, generateField.GenerationFunctions)
-
+		config.GenerationFunctions[reflect.Slice] = NewSliceFunctionHolder(
+			GenerateSliceFunc,
+			generateField,
+			config.GenerationConfig,
+			generateField.Config.GenerationFunctions,
+		)
 	}
+
+	// if field.IsCustomType() {
+	// 	config.GenerationFunctions[field.customTypeFunctionHolder().GetFunction().Kind()] = field.customTypeFunctionHolder()
+	// }
+
 	return generateField
+}
+
+func (field *GeneratedField) IsCustomType() bool {
+	return field.customTypes[field.goType] != nil
+}
+
+func (field *GeneratedField) customTypeFunctionHolder() FunctionHolder {
+	return field.customTypes[field.goType]
+}
+
+func (field *GeneratedField) SetConfig(cfg config.Config) {
+	kind := field.Value.Kind()
+	if field.IsCustomType() {
+		field.customTypeFunctionHolder().SetConfig(cfg)
+	} else if field.Config.GenerationFunctions[kind] != nil {
+		field.Config.GenerationFunctions[kind].SetConfig(cfg)
+	} else {
+		field.Config.SetConfig(cfg)
+	}
+}
+
+func (field *GeneratedField) SetGenerationSettings(settings config.GenerationSettings) {
+	field.Config.GenerationSettings = settings
+}
+
+func (field *GeneratedField) SetGenerationFunction(
+	functionHolder FunctionHolder,
+) {
+	if field.IsCustomType() {
+		field.customTypes[field.goType] = functionHolder
+	} else if field.Config.GenerationFunctions[field.Value.Kind()] != nil {
+		field.Config.GenerationFunctions[field.Value.Kind()] = functionHolder
+	}
+}
+
+func (field *GeneratedField) SetGenerationFunctions(functions DefaultGenerationFunctions) {
+	field.Config.GenerationFunctions = functions
 }
 
 func (field *GeneratedField) checkForRecursiveDefinition(fail bool) bool {
@@ -75,15 +126,21 @@ func (field *GeneratedField) checkForRecursiveDefinition(fail bool) bool {
 	var matchedField *GeneratedField
 	for parent := field.Parent; parent != nil; parent = parent.Parent {
 		if parent.Value.Type() == field.Value.Type() {
-			if !field.GenerationValueConfig.RecursiveDefinition.Allow || fail {
-				panic(fmt.Sprintf("github.com/MartinSimango/dstruct/generator: recursive definition found for field `%s` of type %s", parent.Name, parent.Value.Type()))
+			if !field.Config.GenerationSettings.RecursiveDefinition.Allow || fail {
+				panic(
+					fmt.Sprintf(
+						"github.com/MartinSimango/dstruct/generator: recursive definition found for field `%s` of type %s",
+						parent.Name,
+						parent.Value.Type(),
+					),
+				)
 			}
 			depth++
 			if depth == 1 {
 				matchedField = parent
 			}
 		}
-		if depth == (field.GenerationValueConfig.RecursiveDefinition.Depth + 1) {
+		if depth == (field.Config.GenerationSettings.RecursiveDefinition.Depth + 1) {
 			// fmt.Println(":DF ", field.Name, matchedField.Name, field.Value.Type(), matchedField.Value.Type(), matchedField.Value, depth)
 			if matchedField.PointerValue != nil {
 				matchedField.PointerValue.SetZero()
@@ -94,10 +151,10 @@ func (field *GeneratedField) checkForRecursiveDefinition(fail bool) bool {
 		}
 	}
 	return false
-
 }
 
 func (field *GeneratedField) SetValue() bool {
+	// check if the current field is a custom type with it's own generation function
 	if customType := field.customTypes[field.goType]; customType != nil {
 		field.Value.Set(reflect.ValueOf(customType.GetFunction().Generate()))
 		return false
@@ -116,7 +173,9 @@ func (field *GeneratedField) SetValue() bool {
 		if field.checkForRecursiveDefinition(true) {
 			return true
 		}
-		field.Value.Set(reflect.ValueOf(field.GenerationFunctions[kind].GetFunction().Generate()))
+		field.Value.Set(
+			reflect.ValueOf(field.Config.GenerationFunctions[kind].GetFunction().Generate()),
+		)
 	case reflect.Interface:
 		field.Value.Set(reflect.Zero(field.Value.Type()))
 	default:
@@ -128,20 +187,20 @@ func (field *GeneratedField) SetValue() bool {
 func (field *GeneratedField) setStructValues() {
 	for j := 0; j < field.Value.NumField(); j++ {
 		structField := &GeneratedField{
-			Name:                 field.Name + "." + field.Value.Type().Field(j).Name,
-			Value:                field.Value.Field(j),
-			Tag:                  field.Value.Type().Field(j).Tag,
-			GeneratedFieldConfig: field.GeneratedFieldConfig.Copy(field.Value.Field(j).Kind()),
-			Parent:               field,
-			customTypes:          field.customTypes,
-			goType:               field.Value.Field(j).Type(),
+			Name:        field.Name + "." + field.Value.Type().Field(j).Name,
+			Value:       field.Value.Field(j),
+			Tag:         field.Value.Type().Field(j).Tag,
+			Config:      field.Config.Copy(field.Value.Field(j).Kind()),
+			Parent:      field,
+			customTypes: field.customTypes,
+			goType:      field.Value.Field(j).Type(),
 		}
 		structField.SetValue()
 	}
 }
 
 func (field *GeneratedField) getGenerationFunction() generator.GenerationFunction {
-
+	// check if field is a custom type with it's own generation function
 	if field.customTypes[field.goType] != nil {
 		return field.customTypes[field.goType].GetFunction()
 	}
@@ -155,7 +214,8 @@ func (field *GeneratedField) getGenerationFunction() generator.GenerationFunctio
 	case reflect.Ptr:
 		return GeneratePointerValueFunc(field)
 	}
-	if field.GenerationValueConfig.ValueGenerationType == config.UseDefaults {
+
+	if field.Config.GenerationSettings.ValueGenerationType == config.UseDefaults {
 		example, ok := tags.Lookup("example")
 		if !ok {
 			example, ok = tags.Lookup("default")
@@ -182,7 +242,6 @@ func (field *GeneratedField) getGenerationFunction() generator.GenerationFunctio
 			default:
 				fmt.Println("Unsupported types for defaults: ", kind, example)
 			}
-
 		}
 	}
 
@@ -194,7 +253,7 @@ func (field *GeneratedField) getGenerationFunction() generator.GenerationFunctio
 	format := tags.Get("format")
 
 	switch format {
-	// TODO replace or remove this
+	// TODO : replace or remove this
 	case "date-time":
 		return GenerateDateTimeFunc()
 	}
@@ -202,7 +261,9 @@ func (field *GeneratedField) getGenerationFunction() generator.GenerationFunctio
 	enum, ok := tags.Lookup("enum")
 	if ok {
 		numEnums, _ := strconv.Atoi(enum)
-		return GenerateFixedValueFunc(tags.Get(fmt.Sprintf("enum_%d", generateNum(0, numEnums-1)+1)))
+		return GenerateFixedValueFunc(
+			tags.Get(fmt.Sprintf("enum_%d", generateNum(0, numEnums-1)+1)),
+		)
 	}
 
 	_, ok = tags.Lookup("gen_task")
@@ -218,5 +279,7 @@ func (field *GeneratedField) getGenerationFunction() generator.GenerationFunctio
 		return task.GenerationFunction(*taskProperties)
 	}
 
-	return field.GenerationFunctions[kind].GetFunction()
+	// if we get no match, we default to the default generation function for the kind
+	// kidds of type Slice will be handled here as their default generation function for a slice will be overwritten when the generated field is created.
+	return field.Config.GenerationFunctions[kind].GetFunction()
 }
