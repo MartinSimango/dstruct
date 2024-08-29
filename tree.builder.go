@@ -61,10 +61,9 @@ func ExtendStruct(val any) *treeBuilderImpl {
 	}
 
 	return b
-
 }
-func newBuilderFromNode(node *Node[structField], resetFQN bool) *treeBuilderImpl {
 
+func newBuilderFromNode(node *Node[structField], resetFQN bool) *treeBuilderImpl {
 	if resetFQN {
 		resetNodeFieldsFQN(node)
 	}
@@ -129,7 +128,6 @@ func (dsb *treeBuilderImpl) GetFieldCopy(field string) Builder {
 }
 
 func (dsb *treeBuilderImpl) getNode(field string) *Node[structField] {
-
 	fields := strings.Split(field, ".")
 	node := dsb.root
 
@@ -139,7 +137,6 @@ func (dsb *treeBuilderImpl) getNode(field string) *Node[structField] {
 		}
 	}
 	return node
-
 }
 
 func (db *treeBuilderImpl) Build() DynamicStructModifier {
@@ -156,6 +153,8 @@ func (db *treeBuilderImpl) Build() DynamicStructModifier {
 func (db *treeBuilderImpl) buildStruct(tree *Node[structField]) any {
 	structValue := reflect.ValueOf(dreflect.GetPointerOfValueType(treeToStruct(tree)))
 	tree.data.value = structValue
+	// set the value of the struct fields. Currently the tree structure contains the values of the fields
+	// so we need to copy the values to the struct fields
 	if db.setValues {
 		if structValue.Elem().Kind() == reflect.Ptr {
 			setPointerFieldValue(structValue.Elem(), tree)
@@ -167,7 +166,14 @@ func (db *treeBuilderImpl) buildStruct(tree *Node[structField]) any {
 	return structValue.Interface()
 }
 
-func (dsb *treeBuilderImpl) addFieldToTree(name string, typ interface{}, pkgPath string, anonymous bool, tag reflect.StructTag, root *Node[structField]) reflect.Type {
+func (dsb *treeBuilderImpl) addFieldToTree(
+	name string,
+	typ interface{},
+	pkgPath string,
+	anonymous bool,
+	tag reflect.StructTag,
+	root *Node[structField],
+) reflect.Type {
 	value := reflect.ValueOf(typ)
 	if !value.IsValid() {
 		panic(fmt.Sprintf("Cannot determine type of field '%s'", name))
@@ -180,7 +186,7 @@ func (dsb *treeBuilderImpl) addFieldToTree(name string, typ interface{}, pkgPath
 	goType := reflect.TypeOf(value.Interface())
 	field := &structField{
 		name:      name,
-		value:     value,
+		value:     value, // this will initally be unaddressable until the struct is built
 		tag:       tag,
 		typ:       goType,
 		goType:    goType,
@@ -188,6 +194,7 @@ func (dsb *treeBuilderImpl) addFieldToTree(name string, typ interface{}, pkgPath
 		anonymous: anonymous,
 		jsonName:  strings.Split(tag.Get("json"), ",")[0],
 	}
+
 	field.structIndex = new(int)
 	*field.structIndex = *root.data.numberOfSubFields
 	field.fullyQualifiedName = getFQN(root.data.GetFieldFullyQualifiedName(), field.name)
@@ -216,10 +223,12 @@ func sortKeys(root *Node[structField]) (keys []string) {
 	return
 }
 
+// this only allocates memory for the struct and its fields and does not set any values
+// so the returned value will be an uninitialized struct
 func treeToStruct(root *Node[structField]) any {
 	var structFields []reflect.StructField
 
-	//sort the keys to ensure type  of struct produced is always the same
+	// sort the keys to ensure type  of struct produced is always the same
 	var keys []string = sortKeys(root)
 
 	for _, fieldName := range keys {
@@ -266,16 +275,16 @@ func setStructFieldValues(strct reflect.Value, root *Node[structField]) {
 			reflect.NewAt(field.Type(), unsafe.Pointer(field.UnsafeAddr())).
 				Elem().
 				Set(currentNode.data.value)
+
 		}
+		//  make the tree node value point to the struct field - ensuring that when the node value changes the struct field value changes
 		currentNode.data.value = field
-		// fmt.Println("C: ", currentNode.data.anonymous, currentNode.data.fqn)
 
 		// if currentNode.data.anonymous {
 		// 	db.addAnonymousSubfields(currentNode)
 		// }
 
 	}
-
 }
 
 func setPointerFieldValue(field reflect.Value, currentNode *Node[structField]) {
@@ -286,10 +295,14 @@ func setPointerFieldValue(field reflect.Value, currentNode *Node[structField]) {
 	f := field
 	if currentNode.data.numberOfSubFields != nil { // node is a struct with subfields that needs to be dereferenced
 		for i := 0; i < currentNode.data.ptrDepth; i++ {
-			f.Set(reflect.New(f.Type().Elem()))
+			// We don't use f.Set(reflect.New(f.Type().Elem())) because it panics when the field is unexported
+			// se we need to access the memory address of the field and set the value which bypasses the panic
+			reflect.NewAt(f.Type(), unsafe.Pointer(f.UnsafeAddr())).
+				Elem().
+				Set(reflect.New(f.Type().Elem()))
+			//			f.Set(reflect.New(f.Type().Elem()))
 			f = f.Elem()
 		}
-
 	}
 
 	switch f.Kind() {
@@ -299,10 +312,14 @@ func setPointerFieldValue(field reflect.Value, currentNode *Node[structField]) {
 		field.Set(currentNode.data.value)
 	}
 	currentNode.data.value = field
-
 }
 
-func (dsb *treeBuilderImpl) addStructFields(strct reflect.Value, root *Node[structField], ptrDepth int, anon bool) reflect.Type {
+func (dsb *treeBuilderImpl) addStructFields(
+	strct reflect.Value,
+	root *Node[structField],
+	ptrDepth int,
+	anon bool,
+) reflect.Type {
 	var structFields []reflect.StructField
 
 	// Create pointer to struct to allow unexported field values to be read in order
@@ -354,8 +371,11 @@ func getPtrValue(value reflect.Value, ptrDepth int) (reflect.Value, int) {
 	return value, ptrDepth
 }
 
-func (dsb *treeBuilderImpl) addPtrField(value reflect.Value, node *Node[structField], anonymous bool) reflect.Type {
-
+func (dsb *treeBuilderImpl) addPtrField(
+	value reflect.Value,
+	node *Node[structField],
+	anonymous bool,
+) reflect.Type {
 	if value.IsNil() {
 		return reflect.TypeOf(value.Interface())
 	}

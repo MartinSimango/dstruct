@@ -86,8 +86,7 @@ func (gs *DStructGeneratedStruct[T]) Generate() {
 
 	// TODO: should only be called if new struct fields are generated
 	// an idea is to have generatedFields return a bool to indicate if new fields were generated
-	// gs.Update()
-
+	gs.Update()
 }
 
 // SetFieldGenerationSettings implements GeneratedStruct.SetFieldGenerationSettings
