@@ -19,6 +19,7 @@ func NewDstructConfig() *DstructConfig {
 var _ Config = &DstructConfig{}
 
 // Copy implements Config.
+// TODO: implement this
 func (c *DstructConfig) Copy() Config {
 	newConfig := &DstructConfig{}
 	if c.SliceConfig != nil {

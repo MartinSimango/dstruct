@@ -25,6 +25,9 @@ type GeneratedStruct interface {
 	// If the field does not exist or if the field has no generation settings an error is returned.
 	GetFieldGenerationSettings(field string) (config.GenerationSettings, error)
 
+	// GetFieldGenerationSettings_ is like GetFieldGenerationSettings but panics if an error occurs.
+	GetFieldGenerationSettings_(field string) config.GenerationSettings
+
 	// SetGenerationSettings sets the generation settings for the struct and propagates the settings to all fields
 
 	SetGenerationSettings(settings config.GenerationSettings)
@@ -45,6 +48,9 @@ type GeneratedStruct interface {
 	// GetFieldGenerationConfig gets the generation config for field within the struct.
 	GetFieldGenerationConfig(field string) (config.Config, error)
 
+	// GetFieldGenerationConfig_ is like GetFieldGenerationConfig but panics if an error occurs.
+	GetFieldGenerationConfig_(field string) config.Config
+
 	// SetGenerationConfig sets the generation config for the struct and propagates the settings to all fields
 	SetGenerationConfig(config config.Config)
 
@@ -54,6 +60,12 @@ type GeneratedStruct interface {
 	// SetFieldGenerationFunction sets the generation function for field within the struct. It returns an error if the field does not exist or if the field cannot be generated.
 	SetFieldGenerationFunction(field string, functionHolder core.FunctionHolder) error
 
+	// // GetFieldGenerationConfig gets the generation function for field within the struct.
+	// GetFieldGenerationFunction(field string) (core.FunctionHolder, error)
+	//
+	// // GetFieldGenerationFunction_ is like GetFieldGenerationFunction but panics if an error occurs.
+	// GetFieldGenerationFunction_(field string) core.FunctionHolder
+	//
 	// SetFieldDefaultFunctions sets the default generation functions for field within the struct. It returns an error if the field does not exist or if the field cannot be generated.
 	SetFieldGenerationFunctions(field string, functions core.DefaultGenerationFunctions) error
 

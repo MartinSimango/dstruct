@@ -23,6 +23,9 @@ type DynamicStructModifier interface {
 	// Get gets the value of the struct field `field` and returns an error if the field is not found
 	Get(field string) (any, error)
 
+	// Get_ gets the value of the struct field `field` and panics if the field is not found
+	Get_(field string) any
+
 	// Set sets the value of the struct field `field` and returns an error if the field is not found.
 	//
 	// The program will panic if the type of value does not match the type of the struct field `field`.
@@ -87,6 +90,14 @@ func (dm *DynamicStructModifierImpl) Get(field string) (any, error) {
 		return nil, fmt.Errorf("field %s does not exists in struct", field)
 	} else {
 		return f.data.value.Interface(), nil
+	}
+}
+
+func (dm *DynamicStructModifierImpl) Get_(field string) any {
+	if f := dm.get(field); f == nil {
+		panic(fmt.Errorf("field %s does not exists in struct", field))
+	} else {
+		return f.data.value.Interface()
 	}
 }
 

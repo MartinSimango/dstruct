@@ -42,14 +42,15 @@ func NewGenerateFieldConfig(
 }
 
 type GeneratedField struct {
-	Name         string
-	Value        reflect.Value
-	Tag          reflect.StructTag
-	Config       GeneratedFieldConfig
-	Parent       *GeneratedField
-	PointerValue *reflect.Value
-	customTypes  map[reflect.Type]FunctionHolder
-	goType       reflect.Type
+	Name                      string
+	Value                     reflect.Value
+	Tag                       reflect.StructTag
+	Config                    GeneratedFieldConfig
+	Parent                    *GeneratedField
+	PointerValue              *reflect.Value
+	customTypes               map[reflect.Type]FunctionHolder
+	goType                    reflect.Type
+	currentGenerationFunction generator.GenerationFunction
 }
 
 func NewGeneratedField(fqn string,
@@ -113,6 +114,7 @@ func (field *GeneratedField) SetGenerationFunction(
 	if field.IsCustomType() {
 		field.customTypes[field.goType] = functionHolder
 	} else if field.Config.GenerationFunctions[field.Value.Kind()] != nil {
+		field.Tag = reflect.StructTag("") // remove tags to ensure the field is generated with the new function
 		field.Config.GenerationFunctions[field.Value.Kind()] = functionHolder
 	}
 }
@@ -200,6 +202,12 @@ func (field *GeneratedField) setStructValues() {
 }
 
 func (field *GeneratedField) getGenerationFunction() generator.GenerationFunction {
+	//  keep cache of the current generation function
+	if field.currentGenerationFunction != nil {
+		// TODO: implement cache
+		return field.currentGenerationFunction
+	}
+
 	// check if field is a custom type with it's own generation function
 	if field.customTypes[field.goType] != nil {
 		return field.customTypes[field.goType].GetFunction()

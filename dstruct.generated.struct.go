@@ -202,6 +202,35 @@ func (gs *DStructGeneratedStruct[T]) SetFieldGenerationFunction(field string,
 	return nil
 }
 
+// // GetFieldGenerationFunction implements GeneratedStruct.GetFieldGenerationFunction
+// func (gs *DStructGeneratedStruct[T]) GetFieldGenerationFunction(
+// 	field string,
+// ) (core.FunctionHolder, error) {
+// 	if err := gs.assertFieldExists(field); err != nil {
+// 		return nil, err
+// 	}
+//
+// 	if gs.fieldContexts[field] == nil {
+// 		return nil, fmt.Errorf("field %s does not have a generation function", field)
+// 	}
+//
+// 	return gs.fieldContexts[field].GeneratedgField. , nil
+// }
+//
+// GetFieldGenerationFunction_ implements GeneratedStruct.GetFieldGenerationFunction_
+
+//	func (gs *DStructGeneratedStruct[T]) GetFieldGenerationFunction_(field string) core.FunctionHolder {
+//		if err := gs.assertFieldExists(field); err != nil {
+//			panic(err)
+//		}
+//
+//		if gs.fieldContexts[field] == nil {
+//			panic(fmt.Errorf("field %s does not have a generation function", field))
+//		}
+//
+//		return gs.fieldContexts[field].GeneratedField.GenerationFunction
+//	}
+//
 // SetFieldGenerationFunctions implements GeneratedStruct.SetFieldGenerationFunctions
 func (gs *DStructGeneratedStruct[T]) SetFieldGenerationFunctions(
 	field string,
@@ -247,6 +276,30 @@ func (gs *DStructGeneratedStruct[T]) SetFieldFromTask(
 		core.NewFunctionHolderNoArgs(task.GenerationFunction(*taskProperties)),
 	)
 	return nil
+}
+
+// GetFieldGenerationConfig_ implements GeneratedStruct.
+func (gs *DStructGeneratedStruct[T]) GetFieldGenerationConfig_(field string) config.Config {
+	if err := gs.assertFieldExists(field); err != nil {
+		panic(err)
+	}
+	if gs.fieldContexts[field] == nil {
+		panic(fmt.Errorf("field %s does not have a generation config", field))
+	}
+	return gs.fieldContexts[field].GeneratedField.Config.GenerationConfig
+}
+
+// GetFieldGenerationSettings_ implements GeneratedStruct.
+func (gs *DStructGeneratedStruct[T]) GetFieldGenerationSettings_(
+	field string,
+) config.GenerationSettings {
+	if err := gs.assertFieldExists(field); err != nil {
+		panic(err)
+	}
+	if gs.fieldContexts[field] == nil {
+		panic(fmt.Errorf("field %s does not have any generation settings", field))
+	}
+	return gs.fieldContexts[field].GeneratedField.Config.GenerationSettings
 }
 
 func toType[T any](gs DynamicStructModifier) T {

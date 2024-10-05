@@ -20,7 +20,6 @@ func GenerateNumberFunc[n config.Number](
 	min, max := getNumberRange[n](cfg)
 	return &coreGenerationFunction{
 		_func: func(parameters ...any) any {
-			// TODO: LOG
 			return generateNum(*min, *max)
 		},
 		kind: reflect.ValueOf(*new(n)).Kind(),
