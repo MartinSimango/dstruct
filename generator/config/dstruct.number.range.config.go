@@ -1,5 +1,9 @@
 package config
 
+import (
+	"fmt"
+)
+
 // DstructNumberRangeConfig implements NumberRangeConfig.
 type DstructNumberRangeConfig struct {
 	IntConfig     NumberRange[int]
@@ -105,6 +109,8 @@ func (nc *DstructNumberRangeConfig) UIntPtr() *NumberRange[uintptr] {
 
 // Copy implements NumberConfig.Copy.
 func (nc *DstructNumberRangeConfig) Copy() NumberRangeConfig {
+	fmt.Println("Copying DstructNumberRangeConfig ")
+	fmt.Println(nc.Int().RangeRef())
 	numberConfigCopy := new(DstructNumberRangeConfig)
 	*numberConfigCopy = *nc
 	return numberConfigCopy

@@ -40,7 +40,7 @@ func (c *BaseFunctionHolder) SetConfig(cfg config.Config) {
 }
 
 func (c *BaseFunctionHolder) Copy() BaseFunctionHolder {
-	// TODO should this panic?
+	// TODO: should this panic?
 	var configCopy config.Config
 	if c.config != nil {
 		configCopy = c.config.Copy()
