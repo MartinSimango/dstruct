@@ -16,10 +16,13 @@ type FunctionHolder interface {
 	Kind() reflect.Kind
 }
 
+type ResetFunction func(config config.Config) generator.GenerationFunction
+
 type BaseFunctionHolder struct {
 	config             config.Config
 	generationFunction generator.GenerationFunction
 	fun                any
+	resetFunction      ResetFunction
 }
 
 func (c *BaseFunctionHolder) SetFunction(generationFunction generator.GenerationFunction) {
@@ -35,8 +38,8 @@ func (c *BaseFunctionHolder) GetConfig() config.Config {
 }
 
 func (c *BaseFunctionHolder) SetConfig(cfg config.Config) {
-	c.generationFunction = nil // new config recreate generation function
 	c.config = cfg
+	c.generationFunction = c.resetFunction(cfg)
 }
 
 func (c *BaseFunctionHolder) Copy() BaseFunctionHolder {
@@ -49,7 +52,7 @@ func (c *BaseFunctionHolder) Copy() BaseFunctionHolder {
 	return BaseFunctionHolder{
 		fun:                c.fun,
 		config:             configCopy,
-		generationFunction: c.generationFunction,
+		generationFunction: c.resetFunction(configCopy),
 	}
 }
 

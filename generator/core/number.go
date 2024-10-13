@@ -18,8 +18,11 @@ func GenerateNumberFunc[n config.Number](
 ) generator.GenerationFunction {
 	// get reference to min and max so when the function is called, it will use the current value
 	min, max := getNumberRange[n](cfg)
+
 	return &coreGenerationFunction{
 		_func: func(parameters ...any) any {
+			fmt.Println("Refernece to min and max: ", min, max)
+			fmt.Printf("Cfg: %p\n", cfg)
 			return generateNum(*min, *max)
 		},
 		kind: reflect.ValueOf(*new(n)).Kind(),
