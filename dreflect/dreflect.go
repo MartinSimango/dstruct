@@ -6,32 +6,42 @@ import (
 	"unsafe"
 )
 
-func GetPointerOfValueType(str any) any {
-	ptr := reflect.New(reflect.ValueOf(str).Type())
-	ptr.Elem().Set(reflect.ValueOf(str))
+// GetPointerOfValueType returns a pointer to a new value of the same type as the input value `val`.
+// The new value is initialized to the input value.
+func GetPointerOfValueType(val any) any {
+	ptr := reflect.New(reflect.ValueOf(val).Type())
+	ptr.Elem().Set(reflect.ValueOf(val))
 	return ptr.Interface()
 }
 
+// GetUnderlyingPointerValue dereferences the input pointer `ptr` and returns the value it points to.
 func GetUnderlyingPointerValue(ptr any) any {
 	return reflect.ValueOf(ptr).Elem().Interface()
 }
 
+// GetSliceType returns the element type of the input slice `slice`.
 func GetSliceType(slice any) reflect.Type {
 	return reflect.TypeOf(slice).Elem()
 }
 
-// Convert extends the reflect.Convert function an proceeds to convert subtypes
-func Convert(value reflect.Value, t reflect.Type) reflect.Value {
+// ConvertToType converts the input value `val` to the specified type `T` and returns it.
+func ConvertToType[T any](val any) T {
+	return Convert(reflect.ValueOf(val), reflect.TypeOf(*new(T))).Interface().(T)
+}
+
+// Convert converts the input reflect.Value `val` to the specified reflect.Type `typ` and returns the result.
+// Convert extends the functionality of the reflect.Convert function by also convert subtypes.
+func Convert(val reflect.Value, typ reflect.Type) reflect.Value {
 	defer func() {
 		if r := recover(); r != nil {
-			panic(fmt.Sprintf("dreflect.Convert: value of type %s cannot be converted to type %s", value.Type(), t))
+			panic(fmt.Sprintf("dreflect.Convert: value of type %v cannot be converted to type %v", val.Type(), typ))
 		}
 	}()
-	dst := reflect.New(t).Elem()
-	if value.Type().ConvertibleTo(t) {
-		return value.Convert(t)
+	dst := reflect.New(typ).Elem()
+	if val.Type().ConvertibleTo(typ) {
+		return val.Convert(typ)
 	}
-	return convert(value, dst)
+	return convert(val, dst)
 }
 
 func convertibleTo(src, dst reflect.Type) bool {
@@ -78,7 +88,8 @@ func convert(src reflect.Value, dst reflect.Value) reflect.Value {
 		if src.IsNil() {
 			return reflect.Zero(dst.Type())
 		}
-		dstSliceType := GetSliceType(dst.Interface())
+
+		dstSliceType := dst.Type().Elem()
 
 		newSliceType := getSliceArrayType(src, dstSliceType)
 		newSlice := reflect.MakeSlice(reflect.SliceOf(newSliceType), src.Len(), src.Cap())

@@ -42,3 +42,7 @@ test-bench:
 
 bench:
 	go test -bench=.
+
+
+task-example:
+	go run examples/task/main.go

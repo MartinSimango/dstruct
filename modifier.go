@@ -23,6 +23,9 @@ type DynamicStructModifier interface {
 	// Get gets the value of the struct field `field` and returns an error if the field is not found
 	Get(field string) (any, error)
 
+	// Get_ gets the value of the struct field `field` and panics if the field is not found
+	Get_(field string) any
+
 	// Set sets the value of the struct field `field` and returns an error if the field is not found.
 	//
 	// The program will panic if the type of value does not match the type of the struct field `field`.
@@ -63,25 +66,23 @@ func newStruct(strct any, rootNode *Node[structField]) *DynamicStructModifierImp
 }
 
 func (dm *DynamicStructModifierImpl) createFieldToNodeMappings(rootNode *Node[structField]) {
-
 	for _, field := range rootNode.children {
-		dm.fieldNodeMap[field.data.fqn] = field
-		dm.fieldData[field.data.fqn] = *field.data
+		dm.fieldNodeMap[field.data.fullyQualifiedName] = field
+		dm.fieldData[field.data.fullyQualifiedName] = *field.data
 		dm.createFieldToNodeMappings(field)
 	}
-
 }
 
 func (dm *DynamicStructModifierImpl) New() any {
 	return dm.strct
 }
+
 func (dm *DynamicStructModifierImpl) Instance() any {
 	return dreflect.GetUnderlyingPointerValue(dm.strct)
 }
 
 func (dm *DynamicStructModifierImpl) get(field string) (n *Node[structField]) {
 	return dm.fieldNodeMap[field]
-
 }
 
 func (dm *DynamicStructModifierImpl) Get(field string) (any, error) {
@@ -89,6 +90,14 @@ func (dm *DynamicStructModifierImpl) Get(field string) (any, error) {
 		return nil, fmt.Errorf("field %s does not exists in struct", field)
 	} else {
 		return f.data.value.Interface(), nil
+	}
+}
+
+func (dm *DynamicStructModifierImpl) Get_(field string) any {
+	if f := dm.get(field); f == nil {
+		panic(fmt.Errorf("field %s does not exists in struct", field))
+	} else {
+		return f.data.value.Interface()
 	}
 }
 
@@ -104,6 +113,7 @@ func isFieldExported(field string) bool {
 	}
 	return true
 }
+
 func (dm *DynamicStructModifierImpl) Set(field string, value any) error {
 	var f *Node[structField]
 	if f = dm.get(field); f == nil {
@@ -128,6 +138,8 @@ func (dm *DynamicStructModifierImpl) Set(field string, value any) error {
 
 	fieldValue.Set(dreflect.Convert(reflect.ValueOf(value), fieldValue.Type()))
 
+	// TODO: should we update the struct here? and then remove the Update and Apply methods
+
 	return nil
 }
 
@@ -141,7 +153,7 @@ func (dm *DynamicStructModifierImpl) String() string {
 }
 
 func (dm *DynamicStructModifierImpl) Update() {
-	*dm = *ExtendStruct(dm.strct).Build().(*DynamicStructModifierImpl)
+	*dm = *ExtendStruct(dm.Instance()).Build().(*DynamicStructModifierImpl)
 }
 
 func (dm *DynamicStructModifierImpl) Apply(field string, value any) error {

@@ -1,24 +1,39 @@
 package dstruct
 
 import (
-	"fmt"
-
 	"github.com/MartinSimango/dstruct/generator"
+	"github.com/MartinSimango/dstruct/generator/config"
+	"github.com/MartinSimango/dstruct/generator/core"
 )
 
-type GenerationFields map[string]*generator.GenerationUnit
+type GeneratedFieldContexts map[string]*core.GeneratedFieldContext
 
 type GeneratedStruct interface {
 	DynamicStructModifier
-	// Generate generates fields for the struct
+	// Generate generates fields for the struct. If new fields are generated, the root tree for the underlying
+	// struct is updated. This allows new generated fields to be accessed and modified by Set and Get methods
 	Generate()
 
-	// GenerateAndUpdate Generates fields and updates the root tree for the underlying struct. Allowing
-	// new generated fields to be accessed and modified by Set and Get methods.
-	GenerateAndUpdate()
+	// SetFieldGenerationSettings sets the generation value config for field within the struct.
+	// If the field does not exist or if the field has no generation settings an error is returned.
+	SetFieldGenerationSettings(
+		field string,
+		settings config.GenerationSettings,
+	) error
 
-	// GetFieldGenerationConfig gets the generation config for field within the struct.
-	GetFieldGenerationConfig(field string) *generator.GenerationConfig
+	// GetFieldGenerationSettings gets the generation config for field within the struct.
+	// If the field does not exist or if the field has no generation settings an error is returned.
+	GetFieldGenerationSettings(field string) (config.GenerationSettings, error)
+
+	// GetFieldGenerationSettings_ is like GetFieldGenerationSettings but panics if an error occurs.
+	GetFieldGenerationSettings_(field string) config.GenerationSettings
+
+	// SetGenerationSettings sets the generation settings for the struct and propagates the settings to all fields
+
+	SetGenerationSettings(settings config.GenerationSettings)
+
+	// GetGenerationSettings gets the generation settings for the struct.
+	GetGenerationSettings() config.GenerationSettings
 
 	// SetFieldGenerationConfig sets the generation config for field within the struct. It returns
 	// an error if the field does not exist or if the field cannot be generated.
@@ -28,95 +43,35 @@ type GeneratedStruct interface {
 	// Fields types that cannot be generated: structs, func, chan, any (will default to a nil value being generated).
 	//
 	// Note: Pointers to structs can be generated.
-	SetFieldGenerationConfig(field string, generationConfig *generator.GenerationConfig) error
-}
+	SetFieldGenerationConfig(field string, generationConfig config.Config) error
 
-type GeneratedStructImpl struct {
-	*DynamicStructModifierImpl
-	generatedFields GenerationFields
-	generator       *generator.Generator
-}
+	// GetFieldGenerationConfig gets the generation config for field within the struct.
+	GetFieldGenerationConfig(field string) (config.Config, error)
 
-var _ GeneratedStruct = &GeneratedStructImpl{}
+	// GetFieldGenerationConfig_ is like GetFieldGenerationConfig but panics if an error occurs.
+	GetFieldGenerationConfig_(field string) config.Config
 
-func NewGeneratedStruct(val any) *GeneratedStructImpl {
-	return NewGeneratedStructWithConfig(val, generator.NewGenerator(generator.NewGenerationConfig()))
-}
+	// SetGenerationConfig sets the generation config for the struct and propagates the settings to all fields
+	SetGenerationConfig(config config.Config)
 
-func NewGeneratedStructWithConfig(val any,
-	gen *generator.Generator) *GeneratedStructImpl {
-	generatedStruct := &GeneratedStructImpl{
-		DynamicStructModifierImpl: ExtendStruct(val).Build().(*DynamicStructModifierImpl),
-		generatedFields:           make(GenerationFields),
-		generator:                 gen,
-	}
-	generatedStruct.populateGeneratedFields()
-	return generatedStruct
-}
+	// GetGenerationConfig gets the generation config for the struct.
+	GetGenerationConfig() config.Config
 
-func (gs *GeneratedStructImpl) populateGeneratedFields() {
+	// SetFieldGenerationFunction sets the generation function for field within the struct. It returns an error if the field does not exist or if the field cannot be generated.
+	SetFieldGenerationFunction(field string, functionHolder core.FunctionHolder) error
 
-	for name, field := range gs.fieldNodeMap {
-		if field.HasChildren() {
-			continue
-		}
+	// // GetFieldGenerationConfig gets the generation function for field within the struct.
+	// GetFieldGenerationFunction(field string) (core.FunctionHolder, error)
+	//
+	// // GetFieldGenerationFunction_ is like GetFieldGenerationFunction but panics if an error occurs.
+	// GetFieldGenerationFunction_(field string) core.FunctionHolder
+	//
+	// SetFieldDefaultFunctions sets the default generation functions for field within the struct. It returns an error if the field does not exist or if the field cannot be generated.
+	SetFieldGenerationFunctions(field string, functions core.DefaultGenerationFunctions) error
 
-		gs.generatedFields[name] = generator.NewGenerationUnit(
-			generator.NewGeneratedField(field.data.fqn,
-				field.data.value,
-				field.data.tag,
-				gs.generator.Copy(),
-			))
-	}
-}
+	// SetGenerationFunctions sets the generation functions for the struct and propagates the settings to all fields
+	SetGenerationFunctions(functions core.DefaultGenerationFunctions)
 
-func (gs *GeneratedStructImpl) Generate() {
-	gs.generateFields()
-}
-
-func (gs *GeneratedStructImpl) GenerateAndUpdate() {
-	gs.Generate()
-	gs.Update()
-}
-
-func (gs *GeneratedStructImpl) SetFieldGenerationConfig(field string, generationConfig *generator.GenerationConfig) error {
-	if gs.fieldNodeMap[field] == nil {
-		return fmt.Errorf("field %s does not exist within the struct", field)
-	}
-	if gs.generatedFields[field] == nil {
-		return fmt.Errorf("cannot set config for field %s", field)
-	}
-	gs.generatedFields[field].Field.Generator.GenerationConfig = generationConfig
-	return nil
-}
-
-func (gs *GeneratedStructImpl) GetFieldGenerationConfig(field string) *generator.GenerationConfig {
-	return gs.generatedFields[field].Field.Generator.GenerationConfig
-}
-
-func (gs *GeneratedStructImpl) GetFieldGenerator(field string) *generator.Generator {
-	return gs.generatedFields[field].Field.Generator
-}
-func (gs *GeneratedStructImpl) SetFieldDefaultGenerationFunction(field string,
-	generationFunction generator.GenerationFunction) {
-	kind := gs.fieldNodeMap[field].data.GetType().Kind()
-	generator := gs.generatedFields[field].Field.Generator
-	generator.DefaultGenerationFunctions[kind] = generationFunction
-	generationFunction.SetGenerationConfig(generator.GenerationConfig)
-	gs.generatedFields[field].UpdateCurrentFunction = true
-}
-
-func (gs *GeneratedStructImpl) SetFieldGenerator(field string,
-	generator *generator.Generator) {
-	gs.generatedFields[field].Field.Generator = generator
-	gs.generatedFields[field].UpdateCurrentFunction = true
-
-}
-
-func (gs *GeneratedStructImpl) generateFields() {
-	for k, genFunc := range gs.generatedFields {
-		if err := gs.Set(k, genFunc.Generate()); err != nil {
-			fmt.Println(err)
-		}
-	}
+	// SetFieldFromTask sets the field value from the task. The task is used to generate the value for the field.
+	SetFieldFromTask(field string, task generator.Task, params ...any) error
 }

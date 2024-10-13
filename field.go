@@ -7,17 +7,18 @@ import (
 )
 
 type structField struct {
-	name              string
-	tag               reflect.StructTag
-	value             reflect.Value
-	typ               reflect.Type
-	pkgPath           string
-	anonymous         bool
-	jsonName          string
-	ptrDepth          int
-	fqn               string
-	structIndex       *int
-	numberOfSubFields *int
+	name               string
+	tag                reflect.StructTag
+	value              reflect.Value
+	typ                reflect.Type
+	goType             reflect.Type
+	pkgPath            string
+	anonymous          bool
+	jsonName           string
+	ptrDepth           int
+	fullyQualifiedName string
+	structIndex        *int
+	numberOfSubFields  *int
 }
 
 func (f structField) GetFieldName() string {
@@ -32,8 +33,8 @@ func (f structField) GetType() reflect.Type {
 	return f.typ
 }
 
-func (f structField) GetFieldFQName() string {
-	return f.fqn
+func (f structField) GetFieldFullyQualifiedName() string {
+	return f.fullyQualifiedName
 }
 
 func (f structField) GetTag(t string) string {
