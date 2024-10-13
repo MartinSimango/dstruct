@@ -289,5 +289,9 @@ func (field *GeneratedField) getGenerationFunction() generator.GenerationFunctio
 
 	// if we get no match, we default to the default generation function for the kind
 	// kidds of type Slice will be handled here as their default generation function for a slice will be overwritten when the generated field is created.
+	fmt.Printf(
+		"Returning function ref: %p\n",
+		field.Config.GenerationFunctions[kind].GetConfig().Number(),
+	)
 	return field.Config.GenerationFunctions[kind].GetFunction()
 }

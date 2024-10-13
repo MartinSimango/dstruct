@@ -5,7 +5,6 @@ import (
 	"github.com/MartinSimango/dstruct/generator/config"
 )
 
-// TODO: rename to NumberFunctionHolderFunc?
 type NumberFunctionHolderFunc func(config.NumberRangeConfig) generator.GenerationFunction
 
 type NumberFunctionHolder struct {
@@ -18,27 +17,23 @@ func NewNumberFunctionHolder(
 	f NumberFunctionHolderFunc,
 	cfg config.NumberRangeConfig,
 ) *NumberFunctionHolder {
-	return &NumberFunctionHolder{
+	nfh := &NumberFunctionHolder{
 		BaseFunctionHolder: BaseFunctionHolder{
-			config:             config.NewDstructConfigBuilder().WithNumberConfig(cfg).Build(),
-			fun:                f,
+			config: config.NewDstructConfigBuilder().WithNumberConfig(cfg).Build(),
+			fun:    f,
+			resetFunction: func(cfg config.Config) generator.GenerationFunction {
+				return f(cfg.Number())
+			},
 			generationFunction: f(cfg),
 		},
 	}
-}
 
-// Override
-func (c *NumberFunctionHolder) GetFunction() generator.GenerationFunction {
-	if c.generationFunction != nil {
-		return c.generationFunction
-	}
-	c.generationFunction = c.fun.(NumberFunctionHolderFunc)(c.config.Number())
-
-	return c.generationFunction
+	return nfh
 }
 
 func (c *NumberFunctionHolder) Copy() FunctionHolder {
-	return &NumberFunctionHolder{
+	nf := &NumberFunctionHolder{
 		BaseFunctionHolder: c.BaseFunctionHolder.Copy(),
 	}
+	return nf
 }

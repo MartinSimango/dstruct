@@ -5,6 +5,7 @@ type DstructConfig struct {
 	SliceConfig  SliceConfig
 	NumberConfig NumberRangeConfig
 	DateConfig   DateRangeConfig
+	children     []Config
 }
 
 // NewDstructConfig is a constructor for DstructConfig.
@@ -51,6 +52,9 @@ func (c *DstructConfig) Number() NumberRangeConfig {
 // SetSliceLength implements Config.SetSliceLength.
 func (c *DstructConfig) SetSliceLength(min, max int) Config {
 	c.SliceConfig.SetLengthRange(min, max)
+	for _, sub := range c.children {
+		sub.SetSliceLength(min, max)
+	}
 	return c
 }
 

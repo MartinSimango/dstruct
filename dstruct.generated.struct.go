@@ -339,12 +339,21 @@ func (gs *DStructGeneratedStruct[T]) createGeneratedField(
 	field *Node[structField],
 	kind reflect.Kind,
 ) *core.GeneratedField {
-	return core.NewGeneratedField(field.data.fullyQualifiedName,
+	v := core.NewGeneratedField(field.data.fullyQualifiedName,
 		field.data.value,
 		field.data.tag,
 		gs.structConfig.Copy(kind),
 		gs.customTypes,
 		field.data.goType)
+	fmt.Printf(
+		"\nStruct Config address: %p\n",
+		gs.structConfig.GenerationFunctions[reflect.Int].GetConfig().Number(),
+	)
+	fmt.Printf(
+		"\nConfig address: %p\n",
+		v.Config.GenerationFunctions[reflect.Int].GetConfig().Number(),
+	)
+	return v
 }
 
 func (gs *DStructGeneratedStruct[T]) populateGeneratedFields(node *Node[structField]) {
