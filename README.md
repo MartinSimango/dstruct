@@ -1,6 +1,6 @@
 > :warning: **Notice**
 > * Please do not install any of these versions: v1.1.1 v1.1.0 v1.0.0 v0.1.2 v0.1.1 as these were removed from the repo - (but are still available at pkg.go.dev).
-> * When installing please explicitly install the actual latest version of dstruct which is currently v0.3.0-beta.
+> * When installing please explicitly install the actual latest version of dstruct which is currently v0.4.0-beta.
 
 
 # dstruct
@@ -39,7 +39,7 @@ extend or merge structs which have struct fields of type `any` their value must 
 ## Install
 
 ```sh
-go get github.com/MartinSimango/dstruct@v0.3.0-beta
+go get github.com/MartinSimango/dstruct@v0.4.0-beta
 ```
 
 ## How it works?
