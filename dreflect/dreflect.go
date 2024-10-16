@@ -1,3 +1,5 @@
+// package dreflect adds more advanced reflection functionality to the standard reflect package by providing additional functions to convert between different types.
+
 package dreflect
 
 import (
@@ -34,7 +36,13 @@ func ConvertToType[T any](val any) T {
 func Convert(val reflect.Value, typ reflect.Type) reflect.Value {
 	defer func() {
 		if r := recover(); r != nil {
-			panic(fmt.Sprintf("dreflect.Convert: value of type %v cannot be converted to type %v", val.Type(), typ))
+			panic(
+				fmt.Sprintf(
+					"dreflect.Convert: value of type %v cannot be converted to type %v",
+					val.Type(),
+					typ,
+				),
+			)
 		}
 	}()
 	dst := reflect.New(typ).Elem()
@@ -45,7 +53,6 @@ func Convert(val reflect.Value, typ reflect.Type) reflect.Value {
 }
 
 func convertibleTo(src, dst reflect.Type) bool {
-
 	return !src.ConvertibleTo(dst) &&
 		src.Kind() != reflect.Struct &&
 		src.Kind() != reflect.Slice &&
@@ -54,9 +61,14 @@ func convertibleTo(src, dst reflect.Type) bool {
 }
 
 func convert(src reflect.Value, dst reflect.Value) reflect.Value {
-
 	if convertibleTo(src.Type(), dst.Type()) {
-		panic(fmt.Sprintf("dreflect.Convert: value of type %s cannot be converted to type %s", src.Type(), dst.Type()))
+		panic(
+			fmt.Sprintf(
+				"dreflect.Convert: value of type %s cannot be converted to type %s",
+				src.Type(),
+				dst.Type(),
+			),
+		)
 	}
 
 	switch src.Kind() {
@@ -67,13 +79,26 @@ func convert(src reflect.Value, dst reflect.Value) reflect.Value {
 		sNum := srcStruct.NumField()
 
 		if dNum != sNum {
-			panic(fmt.Sprintf("dreflect.Convert: Number of struct fields differ %s has %d subfield(s) and %s has %d subfield(s)", src.Type(), sNum, dst.Type(), dNum))
-
+			panic(
+				fmt.Sprintf(
+					"dreflect.Convert: Number of struct fields differ %s has %d subfield(s) and %s has %d subfield(s)",
+					src.Type(),
+					sNum,
+					dst.Type(),
+					dNum,
+				),
+			)
 		}
 		for i := 0; i < newStruct.NumField(); i++ {
 			f := srcStruct.Field(i)
 			if srcStruct.Type().Field(i).Name != newStruct.Type().Field(i).Name {
-				panic(fmt.Sprintf("dreflect.Convert: value of type %s cannot be converted to type %s", src.Type(), dst.Type()))
+				panic(
+					fmt.Sprintf(
+						"dreflect.Convert: value of type %s cannot be converted to type %s",
+						src.Type(),
+						dst.Type(),
+					),
+				)
 			}
 			fieldValue := reflect.NewAt(f.Type(), unsafe.Pointer(f.UnsafeAddr())).Elem()
 			newField := convert(fieldValue, dst.Field(i))
@@ -100,7 +125,13 @@ func convert(src reflect.Value, dst reflect.Value) reflect.Value {
 		return newSlice
 	case reflect.Array:
 		if src.Len() != dst.Len() {
-			panic(fmt.Sprintf("dreflect.Convert: value of type %s cannot be converted to type %s", src.Type(), dst.Type()))
+			panic(
+				fmt.Sprintf(
+					"dreflect.Convert: value of type %s cannot be converted to type %s",
+					src.Type(),
+					dst.Type(),
+				),
+			)
 		}
 		dstSliceType := GetSliceType(dst.Interface())
 
@@ -118,17 +149,26 @@ func convert(src reflect.Value, dst reflect.Value) reflect.Value {
 		dstPointerValueType := dst.Type().Elem()
 		srcPointerValue := reflect.ValueOf(GetUnderlyingPointerValue(src.Interface()))
 
-		if src.Type().Elem().Kind() != dst.Type().Elem().Kind() && src.Elem().Kind() >= 1 && src.Elem().Kind() <= 14 {
-			panic(fmt.Sprintf("dreflect.Convert: value of type %s cannot be converted to type %s", src.Type(), dst.Type()))
+		if src.Type().Elem().Kind() != dst.Type().Elem().Kind() && src.Elem().Kind() >= 1 &&
+			src.Elem().Kind() <= 14 {
+			panic(
+				fmt.Sprintf(
+					"dreflect.Convert: value of type %s cannot be converted to type %s",
+					src.Type(),
+					dst.Type(),
+				),
+			)
 		}
 
 		retPointer := reflect.New(dst.Type())
-		//ensure that new pointer uses same memory address as src pointer
+		// ensure that new pointer uses same memory address as src pointer
 		reflect.NewAt(src.Type(), unsafe.Pointer(retPointer.Elem().UnsafeAddr())).Elem().
 			Set(src)
 
 		// now copy over the values from the src
-		retPointer.Elem().Elem().Set(convert(srcPointerValue, reflect.New(dstPointerValueType).Elem()))
+		retPointer.Elem().
+			Elem().
+			Set(convert(srcPointerValue, reflect.New(dstPointerValueType).Elem()))
 
 		return retPointer.Elem()
 
