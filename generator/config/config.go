@@ -3,7 +3,6 @@ package config
 
 // Config represents the generation config for a dynamic struct.
 type Config interface {
-
 	// Number returns the number configuration.
 	Number() NumberRangeConfig
 
@@ -57,4 +56,7 @@ type Config interface {
 
 	// Copy returns a copy of the configuration.
 	Copy() Config
+
+	// SetFrom sets the configuration from another configuration.
+	SetFrom(cfg Config)
 }

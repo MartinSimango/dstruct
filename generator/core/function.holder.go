@@ -12,7 +12,7 @@ type FunctionHolder interface {
 	SetFunction(generationFunction generator.GenerationFunction)
 	GetConfig() config.Config
 	SetConfig(cfg config.Config)
-	Copy() FunctionHolder
+	Copy(cfg config.Config) FunctionHolder
 	Kind() reflect.Kind
 }
 
@@ -39,21 +39,18 @@ func (c *BaseFunctionHolder) GetConfig() config.Config {
 
 func (c *BaseFunctionHolder) SetConfig(cfg config.Config) {
 	c.config = cfg
-	c.generationFunction = c.resetFunction(cfg)
+	if c.resetFunction != nil {
+		c.generationFunction = c.resetFunction(cfg)
+	}
 }
 
-func (c *BaseFunctionHolder) Copy() BaseFunctionHolder {
-	// TODO: should this panic?
-	var configCopy config.Config
-	if c.config != nil {
-		configCopy = c.config.Copy()
+func (c *BaseFunctionHolder) Copy(cfg config.Config) (bf BaseFunctionHolder) {
+	bf = BaseFunctionHolder{
+		fun:           c.fun,
+		resetFunction: c.resetFunction,
 	}
-
-	return BaseFunctionHolder{
-		fun:                c.fun,
-		config:             configCopy,
-		generationFunction: c.resetFunction(configCopy),
-	}
+	bf.SetConfig(cfg)
+	return
 }
 
 func (c *BaseFunctionHolder) Kind() reflect.Kind {

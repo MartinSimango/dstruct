@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"reflect"
 
 	"github.com/MartinSimango/dstruct/generator/config"
@@ -8,18 +9,23 @@ import (
 
 type DefaultGenerationFunctions map[reflect.Kind]FunctionHolder
 
-func (d DefaultGenerationFunctions) Copy(kind reflect.Kind) (dgf DefaultGenerationFunctions) {
+func (d DefaultGenerationFunctions) Copy(
+	cfg config.Config,
+	kind reflect.Kind,
+) (dgf DefaultGenerationFunctions) {
 	// look at the kind and only return what needs to be copied
 	dgf = make(DefaultGenerationFunctions)
-	switch kind {
-	case reflect.Struct, reflect.Slice, reflect.Ptr:
+	if d[kind] == nil {
+		// Copy ll the functions if the kind is not found
+		// TODO: check if this can ever happen
+		fmt.Println("Kind not found", kind)
 		for k, v := range d {
-			dgf[k] = v.Copy()
+			dgf[k] = v.Copy(cfg)
 		}
-	default:
-		dgf[kind] = d[kind].Copy()
+		return
 	}
-	return dgf
+	dgf[kind] = d[kind].Copy(cfg)
+	return
 }
 
 func NewDefaultGenerationFunctions(cfg config.Config) DefaultGenerationFunctions {
