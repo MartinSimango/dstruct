@@ -15,7 +15,12 @@ type SliceFunctionHolder struct {
 
 var _ FunctionHolder = &SliceFunctionHolder{}
 
-func NewSliceFunctionHolder(f SliceFunctionHolderFunc, field *GeneratedField, cfg config.Config, generationFunctions DefaultGenerationFunctions) *SliceFunctionHolder {
+func NewSliceFunctionHolder(
+	f SliceFunctionHolderFunc,
+	field *GeneratedField,
+	cfg config.Config,
+	generationFunctions DefaultGenerationFunctions,
+) *SliceFunctionHolder {
 	return &SliceFunctionHolder{
 		BaseFunctionHolder: BaseFunctionHolder{
 			config: cfg,
@@ -35,9 +40,9 @@ func (c *SliceFunctionHolder) GetFunction() generator.GenerationFunction {
 	return c.generationFunction
 }
 
-func (c *SliceFunctionHolder) Copy() FunctionHolder {
+func (c *SliceFunctionHolder) Copy(cfg config.Config) FunctionHolder {
 	return &SliceFunctionHolder{
-		BaseFunctionHolder: c.BaseFunctionHolder.Copy(),
+		BaseFunctionHolder: c.BaseFunctionHolder.Copy(cfg),
 		// TODO address this
 		// generationFunctions: c.generationFunctions.Copy(reflect.Slice),
 	}

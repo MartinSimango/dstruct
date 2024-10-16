@@ -7,12 +7,9 @@ type Number interface {
 }
 
 // numRange represents the range of a number.
-type numRange[n Number] struct {
+type NumberRange[n Number] struct {
 	min n
 	max n
-}
-type NumberRange[n Number] struct {
-	numRange[n]
 }
 
 func (nr *NumberRange[n]) Range() (n, n) {
@@ -47,7 +44,7 @@ func (nr *NumberRange[n]) RangeRef() (*n, *n) {
 }
 
 func numberRange[N Number](min, max N) NumberRange[N] {
-	return NumberRange[N]{numRange[N]{min, max}}
+	return NumberRange[N]{min, max}
 }
 
 // NumberRangeConfig represents the configuration for a number range within a dynamic struct.
@@ -93,4 +90,7 @@ type NumberRangeConfig interface {
 
 	// Copy returns a copy of the configuration.
 	Copy() NumberRangeConfig
+
+	// SetFrom sets the configuration from another configuration.
+	SetFrom(cfg NumberRangeConfig)
 }

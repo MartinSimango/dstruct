@@ -13,7 +13,9 @@ type FunctionHolderWithNoArgs struct {
 
 var _ FunctionHolder = &FunctionHolderWithNoArgs{}
 
-func NewFunctionHolderNoArgs(generationFunction generator.GenerationFunction) *FunctionHolderWithNoArgs {
+func NewFunctionHolderNoArgs(
+	generationFunction generator.GenerationFunction,
+) *FunctionHolderWithNoArgs {
 	return &FunctionHolderWithNoArgs{
 		BaseFunctionHolder: BaseFunctionHolder{
 			generationFunction: generationFunction,
@@ -27,8 +29,8 @@ func (c *FunctionHolderWithNoArgs) GetFunction() generator.GenerationFunction {
 
 func (c *FunctionHolderWithNoArgs) SetConfig(config config.Config) {}
 
-func (c *FunctionHolderWithNoArgs) Copy() FunctionHolder {
+func (c *FunctionHolderWithNoArgs) Copy(cfg config.Config) FunctionHolder {
 	return &FunctionHolderWithNoArgs{
-		BaseFunctionHolder: c.BaseFunctionHolder.Copy(),
+		BaseFunctionHolder: c.BaseFunctionHolder.Copy(cfg),
 	}
 }

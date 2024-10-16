@@ -5,7 +5,6 @@ type DstructConfig struct {
 	SliceConfig  SliceConfig
 	NumberConfig NumberRangeConfig
 	DateConfig   DateRangeConfig
-	children     []Config
 }
 
 // NewDstructConfig is a constructor for DstructConfig.
@@ -18,21 +17,6 @@ func NewDstructConfig() *DstructConfig {
 }
 
 var _ Config = &DstructConfig{}
-
-// Copy implements Config.
-// TODO: implement this
-func (c *DstructConfig) Copy() Config {
-	newConfig := &DstructConfig{}
-	if c.SliceConfig != nil {
-		newConfig.SliceConfig = c.SliceConfig.Copy()
-	}
-
-	if c.NumberConfig != nil {
-		newConfig.NumberConfig = c.NumberConfig.Copy()
-	}
-
-	return newConfig
-}
 
 // Slice implements Config.Slice.
 func (c *DstructConfig) Slice() SliceConfig {
@@ -52,9 +36,6 @@ func (c *DstructConfig) Number() NumberRangeConfig {
 // SetSliceLength implements Config.SetSliceLength.
 func (c *DstructConfig) SetSliceLength(min, max int) Config {
 	c.SliceConfig.SetLengthRange(min, max)
-	for _, sub := range c.children {
-		sub.SetSliceLength(min, max)
-	}
 	return c
 }
 
@@ -134,4 +115,31 @@ func (c *DstructConfig) SetUInt64Range(min, max uint64) Config {
 func (c *DstructConfig) SetUIntPtr(min, max uintptr) Config {
 	c.NumberConfig.UIntPtr().SetRange(min, max)
 	return c
+}
+
+// Copy implements Config.
+func (c *DstructConfig) Copy() Config {
+	if c == nil {
+		return nil
+	}
+
+	newConfig := &DstructConfig{}
+	if c.SliceConfig != nil {
+		newConfig.SliceConfig = c.SliceConfig.Copy()
+	}
+
+	if c.NumberConfig != nil {
+		newConfig.NumberConfig = c.NumberConfig.Copy()
+	}
+
+	return newConfig
+}
+
+// SetFrom implements Config.
+func (c *DstructConfig) SetFrom(cfg Config) {
+	if cfg == nil {
+		return
+	}
+
+	c.NumberConfig.SetFrom(cfg.Number())
 }
