@@ -109,3 +109,7 @@ func (nc *DstructNumberRangeConfig) Copy() NumberRangeConfig {
 	*numberConfigCopy = *nc
 	return numberConfigCopy
 }
+
+func (nc *DstructNumberRangeConfig) SetFrom(c NumberRangeConfig) {
+	*nc = *c.(*DstructNumberRangeConfig)
+}

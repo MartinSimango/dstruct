@@ -2,6 +2,7 @@ package core
 
 import (
 	"github.com/MartinSimango/dstruct/generator"
+	"github.com/MartinSimango/dstruct/generator/config"
 )
 
 type FixedFunctionHolderFunc[T any] func(value T) generator.GenerationFunction
@@ -20,7 +21,6 @@ func NewFixedFunctionHolder[T any](f FixedFunctionHolderFunc[T], value T) *Fixed
 		},
 		value: value,
 	}
-
 }
 
 // Override
@@ -33,9 +33,9 @@ func (c *FixedFunctionHolder[T]) GetFunction() generator.GenerationFunction {
 	return c.generationFunction
 }
 
-func (c *FixedFunctionHolder[T]) Copy() FunctionHolder {
+func (c *FixedFunctionHolder[T]) Copy(cfg config.Config) FunctionHolder {
 	return &FixedFunctionHolder[T]{
-		BaseFunctionHolder: c.BaseFunctionHolder.Copy(),
+		BaseFunctionHolder: c.BaseFunctionHolder.Copy(cfg),
 		value:              c.value,
 	}
 }

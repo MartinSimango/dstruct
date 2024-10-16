@@ -15,11 +15,12 @@ type GeneratedFieldConfig struct {
 	GenerationConfig    config.Config
 }
 
-func (gf *GeneratedFieldConfig) Copy(kind reflect.Kind) (gfc GeneratedFieldConfig) {
+func (gf *GeneratedFieldConfig) Copy(kind reflect.Kind) GeneratedFieldConfig {
+	cfg := gf.GenerationConfig.Copy()
 	return GeneratedFieldConfig{
-		GenerationFunctions: gf.GenerationFunctions.Copy(kind),
+		GenerationFunctions: gf.GenerationFunctions.Copy(cfg, kind),
 		GenerationSettings:  gf.GenerationSettings,
-		GenerationConfig:    gf.GenerationConfig.Copy(),
+		GenerationConfig:    cfg,
 	}
 }
 
@@ -94,14 +95,17 @@ func (field *GeneratedField) customTypeFunctionHolder() FunctionHolder {
 }
 
 func (field *GeneratedField) SetConfig(cfg config.Config) {
-	kind := field.Value.Kind()
-	if field.IsCustomType() {
-		field.customTypeFunctionHolder().SetConfig(cfg)
-	} else if field.Config.GenerationFunctions[kind] != nil {
-		field.Config.GenerationFunctions[kind].SetConfig(cfg)
-	} else {
-		field.Config.SetConfig(cfg)
-	}
+	field.Config.GenerationConfig.SetFrom(cfg)
+
+	// kind := field.Value.Kind()
+	// if field.IsCustomType() {
+	// 	field.customTypeFunctionHolder().SetConfig(cfg)
+	// } else if field.Config.GenerationFunctions[kind] != nil {
+	// 	fmt.Println("Setting config for kind: ", kind)
+	// 	field.Config.GenerationFunctions[kind].SetConfig(cfg)
+	// } else {
+	// 	field.Config.SetConfig(cfg)
+	// }
 }
 
 func (field *GeneratedField) SetGenerationSettings(settings config.GenerationSettings) {

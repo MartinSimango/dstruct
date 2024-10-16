@@ -345,14 +345,6 @@ func (gs *DStructGeneratedStruct[T]) createGeneratedField(
 		gs.structConfig.Copy(kind),
 		gs.customTypes,
 		field.data.goType)
-	fmt.Printf(
-		"\nStruct Config address: %p\n",
-		gs.structConfig.GenerationFunctions[reflect.Int].GetConfig().Number(),
-	)
-	fmt.Printf(
-		"\nConfig address: %p\n",
-		v.Config.GenerationFunctions[reflect.Int].GetConfig().Number(),
-	)
 	return v
 }
 
