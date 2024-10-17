@@ -15,8 +15,9 @@ type structField struct {
 	pkgPath            string
 	anonymous          bool
 	jsonName           string
-	ptrDepth           int
 	fullyQualifiedName string
+	ptrDepth           int
+	ptrKind            reflect.Kind
 	structIndex        *int
 	numberOfSubFields  *int
 }
