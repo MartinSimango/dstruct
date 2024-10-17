@@ -12,12 +12,13 @@ type Person struct {
 }
 
 func main() {
-	var builder dstruct.Builder = dstruct.NewBuilder().
+	builder := dstruct.NewBuilder().
 		AddField("Person", Person{Name: "Martin", Age: 25}, `json:"person"`).
 		AddField("Job", "Software Developer", "")
 
 	fmt.Printf("Struct before removing fields:\n%+v\n", builder.Build().Instance())
 
+	// Can remove nested fields
 	builder.RemoveField("Person.Age")
 	builder.RemoveField("Job")
 
