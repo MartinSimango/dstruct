@@ -108,6 +108,7 @@ func (dsb *treeBuilderImpl) RemoveField(name string) Builder {
 	return dsb
 }
 
+// GetField implements Builder.GetField
 func (dsb *treeBuilderImpl) GetField(field string) Builder {
 	if node := dsb.getNode(field); node != nil {
 		return newBuilderFromNode(node, false)
