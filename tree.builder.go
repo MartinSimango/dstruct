@@ -55,9 +55,9 @@ func ExtendStruct(val any) *treeBuilderImpl {
 
 	switch value.Kind() {
 	case reflect.Struct:
-		b.addStructFields(value, b.root, 0, false)
+		b.addStructFields(value, b.root, 0)
 	case reflect.Ptr:
-		b.addPtrField(value, b.root, false)
+		b.addPtrField(value, b.root)
 	}
 
 	return b
@@ -82,6 +82,9 @@ func resetNodeFieldsFQN(node *Node[structField]) *Node[structField] {
 }
 
 func (dsb *treeBuilderImpl) AddField(name string, value interface{}, tag string) Builder {
+	if dsb.root.HasChild(name) {
+		panic(fmt.Sprintf("Field '%s' already exists", name))
+	}
 	dsb.addFieldToTree(name, value, "", false, reflect.StructTag(tag), dsb.root)
 	return dsb
 }
@@ -111,6 +114,28 @@ func (dsb *treeBuilderImpl) RemoveField(name string) Builder {
 // GetField implements Builder.GetField
 func (dsb *treeBuilderImpl) GetField(field string) Builder {
 	if node := dsb.getNode(field); node != nil {
+		fmt.Println(
+			"Node kind is",
+			field,
+			node.data.ptrDepth,
+			node.data.ptrKind,
+			node.data.typ.Kind(),
+		)
+		if node.data.ptrDepth > 0 {
+			if node.data.ptrKind != reflect.Struct {
+				panic(
+					fmt.Sprintf(
+						"Cannot get field '%s' because it a points to a non-struct value.",
+						field,
+					),
+				)
+			}
+		} else if node.data.typ.Kind() != reflect.Struct {
+			panic(fmt.Sprintf("Cannot get field '%s' because it is not a struct or it points to a non-struct value", field))
+		}
+		// if node.data.ptrKind != reflect.Struct {
+
+		// node. /
 		return newBuilderFromNode(node, false)
 	}
 	return nil
@@ -205,9 +230,10 @@ func (dsb *treeBuilderImpl) addFieldToTree(
 	// don't add struct fields if special kind
 	switch value.Kind() {
 	case reflect.Struct:
-		field.typ = dsb.addStructFields(value, root.children[name], 0, anonymous)
+		field.typ = dsb.addStructFields(value, root.children[name], 0)
+
 	case reflect.Ptr:
-		field.typ = dsb.addPtrField(value, root.children[name], anonymous)
+		field.typ = dsb.addPtrField(value, root.children[name])
 	}
 
 	return field.typ
@@ -294,16 +320,14 @@ func setPointerFieldValue(field reflect.Value, currentNode *Node[structField]) {
 	}
 
 	f := field
-	if currentNode.data.numberOfSubFields != nil { // node is a struct with subfields that needs to be dereferenced
-		for i := 0; i < currentNode.data.ptrDepth; i++ {
-			// We don't use f.Set(reflect.New(f.Type().Elem())) because it panics when the field is unexported
-			// se we need to access the memory address of the field and set the value which bypasses the panic
-			reflect.NewAt(f.Type(), unsafe.Pointer(f.UnsafeAddr())).
-				Elem().
-				Set(reflect.New(f.Type().Elem()))
-			//			f.Set(reflect.New(f.Type().Elem()))
-			f = f.Elem()
-		}
+	for i := 0; i < currentNode.data.ptrDepth; i++ {
+		// We don't use f.Set(reflect.New(f.Type().Elem())) because it panics when the field is unexported
+		// se we need to access the memory address of the field and set the value which bypasses the panic
+		reflect.NewAt(f.Type(), unsafe.Pointer(f.UnsafeAddr())).
+			Elem().
+			Set(reflect.New(f.Type().Elem()))
+		//			f.Set(reflect.New(f.Type().Elem()))
+		f = f.Elem()
 	}
 
 	switch f.Kind() {
@@ -319,7 +343,6 @@ func (dsb *treeBuilderImpl) addStructFields(
 	strct reflect.Value,
 	root *Node[structField],
 	ptrDepth int,
-	anon bool,
 ) reflect.Type {
 	var structFields []reflect.StructField
 
@@ -375,7 +398,6 @@ func getPtrValue(value reflect.Value, ptrDepth int) (reflect.Value, int) {
 func (dsb *treeBuilderImpl) addPtrField(
 	value reflect.Value,
 	node *Node[structField],
-	anonymous bool,
 ) reflect.Type {
 	if value.IsNil() {
 		return reflect.TypeOf(value.Interface())
@@ -384,9 +406,11 @@ func (dsb *treeBuilderImpl) addPtrField(
 	ptrValue, ptrDepth := getPtrValue(value, 0)
 
 	node.data.ptrDepth = ptrDepth
+	node.data.ptrKind = ptrValue.Kind()
+
 	switch ptrValue.Kind() {
 	case reflect.Struct:
-		return dsb.addStructFields(ptrValue, node, ptrDepth, anonymous)
+		return dsb.addStructFields(ptrValue, node, ptrDepth)
 	}
 	return reflect.TypeOf(value.Interface())
 }
