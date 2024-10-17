@@ -114,13 +114,6 @@ func (dsb *treeBuilderImpl) RemoveField(name string) Builder {
 // GetField implements Builder.GetField
 func (dsb *treeBuilderImpl) GetField(field string) Builder {
 	if node := dsb.getNode(field); node != nil {
-		fmt.Println(
-			"Node kind is",
-			field,
-			node.data.ptrDepth,
-			node.data.ptrKind,
-			node.data.typ.Kind(),
-		)
 		if node.data.ptrDepth > 0 {
 			if node.data.ptrKind != reflect.Struct {
 				panic(
@@ -131,7 +124,7 @@ func (dsb *treeBuilderImpl) GetField(field string) Builder {
 				)
 			}
 		} else if node.data.typ.Kind() != reflect.Struct {
-			panic(fmt.Sprintf("Cannot get field '%s' because it is not a struct or it points to a non-struct value", field))
+			panic(fmt.Sprintf("Cannot get field '%s' because it is not a struct or does not fully derefence to a struct value", field))
 		}
 		// if node.data.ptrKind != reflect.Struct {
 
