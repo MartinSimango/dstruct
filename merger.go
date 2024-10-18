@@ -15,7 +15,10 @@ func MergeStructs(strcts ...interface{}) (a any, err error) {
 
 	for i := 0; i < len(strcts); i++ {
 		if reflect.ValueOf(strcts[i]).Kind() != reflect.Struct {
-			return nil, fmt.Errorf("failed to merged structs: %d interface is not a struct ", (i + 1))
+			return nil, fmt.Errorf(
+				"failed to merged structs: %d interface is not a struct ",
+				(i + 1),
+			)
 		}
 	}
 
@@ -36,7 +39,6 @@ func MergeStructs(strcts ...interface{}) (a any, err error) {
 
 // TODO clean this function up
 func mergeStructs(left, right Builder, parentKind reflect.Kind) (any, error) {
-
 	// struct to be returned
 	newStruct := ExtendStruct(left.Build().Instance())
 
@@ -49,21 +51,20 @@ func mergeStructs(left, right Builder, parentKind reflect.Kind) (any, error) {
 			newStruct.AddField(elementName, field.data.value.Interface(), string(field.data.tag))
 			continue
 		}
-		if err := validateTypes(field.data.value, cV.data.value, field.data.fullyQualifiedName); err != nil {
+		if err := validateTypes(field.data.value, cV.data.value, field.data.qualifiedName); err != nil {
 			return nil, err
 		}
 
 		if field.data.value.Kind() == reflect.Slice {
 			vSliceType := dreflect.GetSliceType(field.data.value.Interface())
 			cVSliceType := dreflect.GetSliceType(cV.data.value.Interface())
-			if err := validateSliceTypes(vSliceType, cVSliceType, field.data.value, cV.data.value, field.data.fullyQualifiedName); err != nil {
+			if err := validateSliceTypes(vSliceType, cVSliceType, field.data.value, cV.data.value, field.data.qualifiedName); err != nil {
 				return nil, err
 			}
-			newStruct.RemoveField(field.data.fullyQualifiedName)
+			newStruct.RemoveField(field.data.qualifiedName)
 			if cVSliceType.Kind() == reflect.Struct {
 				newSliceTypeStruct, err := mergeStructs(left.GetField(name),
 					right.GetField(name), reflect.Slice)
-
 				if err != nil {
 					return nil, err
 				}
@@ -84,7 +85,9 @@ func mergeStructs(left, right Builder, parentKind reflect.Kind) (any, error) {
 	}
 
 	if parentKind == reflect.Slice {
-		sliceOfElementType := reflect.SliceOf(reflect.ValueOf(newStruct.Build().Instance()).Elem().Type())
+		sliceOfElementType := reflect.SliceOf(
+			reflect.ValueOf(newStruct.Build().Instance()).Elem().Type(),
+		)
 		return reflect.MakeSlice(sliceOfElementType, 0, 1024).Interface(), nil
 	}
 	return newStruct.Build().Instance(), nil
@@ -102,7 +105,12 @@ func validateTypes(v, cV reflect.Value, fullFieldName string) error {
 	newElementType := reflect.TypeOf(v.Interface())
 	if shouldTypeMatch(v.Kind()) || shouldTypeMatch(cV.Kind()) {
 		if currentElementType != newElementType {
-			return fmt.Errorf("mismatching types for field '%s': %s and %s", fullFieldName, currentElementType, newElementType)
+			return fmt.Errorf(
+				"mismatching types for field '%s': %s and %s",
+				fullFieldName,
+				currentElementType,
+				newElementType,
+			)
 		}
 	} else {
 		if v.Kind() != cV.Kind() {
@@ -112,13 +120,22 @@ func validateTypes(v, cV reflect.Value, fullFieldName string) error {
 	return nil
 }
 
-func validateSliceTypes(vSliceType, cVSliceType reflect.Type, v, cV reflect.Value, fullFieldName string) error {
+func validateSliceTypes(
+	vSliceType, cVSliceType reflect.Type,
+	v, cV reflect.Value,
+	fullFieldName string,
+) error {
 	currentElementType := reflect.TypeOf(reflect.New(cVSliceType).Interface())
 	newElementType := reflect.TypeOf(reflect.New(vSliceType).Interface())
 
 	if shouldTypeMatch(vSliceType.Kind()) || shouldTypeMatch(cVSliceType.Kind()) {
 		if currentElementType != newElementType {
-			return fmt.Errorf("mismatching types for field '%s': %s and %s", fullFieldName, reflect.TypeOf(v.Interface()), reflect.TypeOf(cV.Interface()))
+			return fmt.Errorf(
+				"mismatching types for field '%s': %s and %s",
+				fullFieldName,
+				reflect.TypeOf(v.Interface()),
+				reflect.TypeOf(cV.Interface()),
+			)
 		}
 	} else {
 		if v.Kind() != cV.Kind() {

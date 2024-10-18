@@ -11,20 +11,20 @@ import (
 )
 
 type treeBuilderImpl struct {
-	root      *Node[structField]
+	root      *Node[StructField]
 	setValues bool
 }
 
 var _ Builder = &treeBuilderImpl{}
 
-func createRoot() *Node[structField] {
-	return &Node[structField]{
-		data: &structField{
-			name:               "#root",
-			value:              reflect.ValueOf(nil),
-			fullyQualifiedName: "#root",
+func createRoot() *Node[StructField] {
+	return &Node[StructField]{
+		data: &StructField{
+			name:          "#root",
+			value:         reflect.ValueOf(nil),
+			qualifiedName: "#root",
 		},
-		children: make(map[string]*Node[structField]),
+		children: make(map[string]*Node[StructField]),
 	}
 }
 
@@ -63,7 +63,7 @@ func ExtendStruct(val any) *treeBuilderImpl {
 	return b
 }
 
-func newBuilderFromNode(node *Node[structField], resetFQN bool) *treeBuilderImpl {
+func newBuilderFromNode(node *Node[StructField], resetFQN bool) *treeBuilderImpl {
 	if resetFQN {
 		resetNodeFieldsFQN(node)
 	}
@@ -73,9 +73,9 @@ func newBuilderFromNode(node *Node[structField], resetFQN bool) *treeBuilderImpl
 	}
 }
 
-func resetNodeFieldsFQN(node *Node[structField]) *Node[structField] {
+func resetNodeFieldsFQN(node *Node[StructField]) *Node[StructField] {
 	for _, v := range node.children {
-		v.data.fullyQualifiedName = getFQN(node.data.name, v.data.name)
+		v.data.qualifiedName = getQualifiedName(node.data.name, v.data.name)
 		resetNodeFieldsFQN(v)
 	}
 	return node
@@ -123,7 +123,7 @@ func (dsb *treeBuilderImpl) GetField(field string) Builder {
 					),
 				)
 			}
-		} else if node.data.typ.Kind() != reflect.Struct {
+		} else if node.data.dstructType.Kind() != reflect.Struct {
 			panic(fmt.Sprintf("Cannot get field '%s' because it is not a struct or does not fully derefence to a struct value", field))
 		}
 		// if node.data.ptrKind != reflect.Struct {
@@ -131,13 +131,13 @@ func (dsb *treeBuilderImpl) GetField(field string) Builder {
 		// node. /
 		return newBuilderFromNode(node, false)
 	}
-	return nil
+	panic(fmt.Sprintf("Field '%s' does not exist", field))
 }
 
 func (dsb *treeBuilderImpl) NewBuilderFromField(field string) Builder {
 	copyNode := dsb.getNode(field).Copy()
 	copyNode.data.name = "#root"
-	copyNode.data.fullyQualifiedName = "#root"
+	copyNode.data.qualifiedName = "#root"
 	return newBuilderFromNode(copyNode, true)
 }
 
@@ -146,7 +146,7 @@ func (dsb *treeBuilderImpl) GetFieldCopy(field string) Builder {
 	return newBuilderFromNode(copyNode, false)
 }
 
-func (dsb *treeBuilderImpl) getNode(field string) *Node[structField] {
+func (dsb *treeBuilderImpl) getNode(field string) *Node[StructField] {
 	fields := strings.Split(field, ".")
 	node := dsb.root
 
@@ -163,13 +163,13 @@ func (db *treeBuilderImpl) Build() DynamicStructModifier {
 	// Ensure that the current node is treated is root when struct is built
 	if db.root.parent != nil {
 		rootCopy.data.name = "#root"
-		rootCopy.data.fullyQualifiedName = "#root"
+		rootCopy.data.qualifiedName = "#root"
 		rootCopy = resetNodeFieldsFQN(rootCopy)
 	}
 	return newStruct(db.buildStruct(rootCopy), rootCopy)
 }
 
-func (db *treeBuilderImpl) buildStruct(tree *Node[structField]) any {
+func (db *treeBuilderImpl) buildStruct(tree *Node[StructField]) any {
 	structValue := reflect.ValueOf(dreflect.GetPointerOfValueType(treeToStruct(tree)))
 	tree.data.value = structValue
 	// set the value of the struct fields. Currently the tree structure contains the values of the fields
@@ -191,7 +191,7 @@ func (dsb *treeBuilderImpl) addFieldToTree(
 	pkgPath string,
 	anonymous bool,
 	tag reflect.StructTag,
-	root *Node[structField],
+	root *Node[StructField],
 ) reflect.Type {
 	value := reflect.ValueOf(typ)
 	if !value.IsValid() {
@@ -203,36 +203,36 @@ func (dsb *treeBuilderImpl) addFieldToTree(
 		*root.data.numberOfSubFields++
 	}
 	goType := reflect.TypeOf(value.Interface())
-	field := &structField{
-		name:      name,
-		value:     value, // this will initally be unaddressable until the struct is built
-		tag:       tag,
-		typ:       goType,
-		goType:    goType,
-		pkgPath:   pkgPath,
-		anonymous: anonymous,
-		jsonName:  strings.Split(tag.Get("json"), ",")[0],
+	field := &StructField{
+		name:        name,
+		value:       value, // this will initally be unaddressable until the struct is built
+		tag:         tag,
+		dstructType: goType,
+		goType:      goType,
+		pkgPath:     pkgPath,
+		anonymous:   anonymous,
+		jsonName:    strings.Split(tag.Get("json"), ",")[0],
 	}
 
 	field.structIndex = new(int)
 	*field.structIndex = *root.data.numberOfSubFields
-	field.fullyQualifiedName = getFQN(root.data.GetFieldFullyQualifiedName(), field.name)
+	field.qualifiedName = getQualifiedName(root.data.GetQualifiedName(), field.name)
 
 	root.AddNode(name, field)
 
 	// don't add struct fields if special kind
 	switch value.Kind() {
 	case reflect.Struct:
-		field.typ = dsb.addStructFields(value, root.children[name], 0)
+		field.dstructType = dsb.addStructFields(value, root.children[name], 0)
 
 	case reflect.Ptr:
-		field.typ = dsb.addPtrField(value, root.children[name])
+		field.dstructType = dsb.addPtrField(value, root.children[name])
 	}
 
-	return field.typ
+	return field.dstructType
 }
 
-func sortKeys(root *Node[structField]) (keys []string) {
+func sortKeys(root *Node[StructField]) (keys []string) {
 	for key := range root.children {
 		keys = append(keys, key)
 	}
@@ -245,11 +245,11 @@ func sortKeys(root *Node[structField]) (keys []string) {
 
 // this only allocates memory for the struct and its fields and does not set any values
 // so the returned value will be an uninitialized struct
-func treeToStruct(root *Node[structField]) any {
+func treeToStruct(root *Node[StructField]) any {
 	var structFields []reflect.StructField
 
 	// sort the keys to ensure type  of struct produced is always the same
-	var keys []string = sortKeys(root)
+	keys := sortKeys(root)
 
 	for _, fieldName := range keys {
 		var typ reflect.Type
@@ -279,7 +279,7 @@ func treeToStruct(root *Node[structField]) any {
 	return strct.Interface()
 }
 
-func setStructFieldValues(strct reflect.Value, root *Node[structField]) {
+func setStructFieldValues(strct reflect.Value, root *Node[StructField]) {
 	for i := 0; i < strct.NumField(); i++ {
 		field := strct.Field(i)
 		fieldName := strct.Type().Field(i).Name
@@ -307,7 +307,7 @@ func setStructFieldValues(strct reflect.Value, root *Node[structField]) {
 	}
 }
 
-func setPointerFieldValue(field reflect.Value, currentNode *Node[structField]) {
+func setPointerFieldValue(field reflect.Value, currentNode *Node[StructField]) {
 	if currentNode.data.value.IsNil() {
 		return
 	}
@@ -334,7 +334,7 @@ func setPointerFieldValue(field reflect.Value, currentNode *Node[structField]) {
 
 func (dsb *treeBuilderImpl) addStructFields(
 	strct reflect.Value,
-	root *Node[structField],
+	root *Node[StructField],
 	ptrDepth int,
 ) reflect.Type {
 	var structFields []reflect.StructField
@@ -390,7 +390,7 @@ func getPtrValue(value reflect.Value, ptrDepth int) (reflect.Value, int) {
 
 func (dsb *treeBuilderImpl) addPtrField(
 	value reflect.Value,
-	node *Node[structField],
+	node *Node[StructField],
 ) reflect.Type {
 	if value.IsNil() {
 		return reflect.TypeOf(value.Interface())
@@ -408,7 +408,7 @@ func (dsb *treeBuilderImpl) addPtrField(
 	return reflect.TypeOf(value.Interface())
 }
 
-func getFQN(root, name string) string {
+func getQualifiedName(root, name string) string {
 	if root != "#root" && root != "" {
 		return fmt.Sprintf("%s.%s", root, name)
 	}
