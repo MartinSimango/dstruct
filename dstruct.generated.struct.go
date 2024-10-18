@@ -336,10 +336,10 @@ func (gs *DStructGeneratedStruct[T]) addCustomType(customType CustomType) {
 }
 
 func (gs *DStructGeneratedStruct[T]) createGeneratedField(
-	field *Node[structField],
+	field *Node[StructField],
 	kind reflect.Kind,
 ) *core.GeneratedField {
-	v := core.NewGeneratedField(field.data.fullyQualifiedName,
+	v := core.NewGeneratedField(field.data.qualifiedName,
 		field.data.value,
 		field.data.tag,
 		gs.structConfig.Copy(kind),
@@ -348,16 +348,16 @@ func (gs *DStructGeneratedStruct[T]) createGeneratedField(
 	return v
 }
 
-func (gs *DStructGeneratedStruct[T]) populateGeneratedFields(node *Node[structField]) {
+func (gs *DStructGeneratedStruct[T]) populateGeneratedFields(node *Node[StructField]) {
 	for _, field := range node.children {
 		if customType := gs.customTypes[field.data.goType]; customType != nil {
-			gs.fieldContexts[field.data.fullyQualifiedName] = core.NewGeneratedFieldContext(
+			gs.fieldContexts[field.data.qualifiedName] = core.NewGeneratedFieldContext(
 				gs.createGeneratedField(field, customType.Kind()),
 			)
 		} else if field.HasChildren() {
 			gs.populateGeneratedFields(field)
 		} else {
-			gs.fieldContexts[field.data.fullyQualifiedName] = core.NewGeneratedFieldContext(
+			gs.fieldContexts[field.data.qualifiedName] = core.NewGeneratedFieldContext(
 				gs.createGeneratedField(field, field.data.value.Kind()),
 			)
 		}
@@ -365,58 +365,58 @@ func (gs *DStructGeneratedStruct[T]) populateGeneratedFields(node *Node[structFi
 }
 
 func (gs *DStructGeneratedStruct[T]) propagateConfig(
-	node *Node[structField],
+	node *Node[StructField],
 	cfg config.Config,
 ) {
 	for _, field := range node.children {
 		// Don't propagate changes to children nodes if the field is a custom type
 		if field.HasChildren() &&
-			!gs.fieldContexts[field.data.fullyQualifiedName].GeneratedField.IsCustomType() {
+			!gs.fieldContexts[field.data.qualifiedName].GeneratedField.IsCustomType() {
 			gs.propagateConfig(field, cfg)
 		} else {
-			gs.fieldContexts[field.data.fullyQualifiedName].GeneratedField.SetConfig(cfg)
+			gs.fieldContexts[field.data.qualifiedName].GeneratedField.SetConfig(cfg)
 		}
 	}
 }
 
 func (gs *DStructGeneratedStruct[T]) propagateSettings(
-	node *Node[structField],
+	node *Node[StructField],
 	settings config.GenerationSettings,
 ) {
 	for _, field := range node.children {
 		if field.HasChildren() &&
-			!gs.fieldContexts[field.data.fullyQualifiedName].GeneratedField.IsCustomType() {
+			!gs.fieldContexts[field.data.qualifiedName].GeneratedField.IsCustomType() {
 			gs.propagateSettings(field, settings)
 		} else {
-			gs.fieldContexts[field.data.fullyQualifiedName].GeneratedField.SetGenerationSettings(settings)
+			gs.fieldContexts[field.data.qualifiedName].GeneratedField.SetGenerationSettings(settings)
 		}
 	}
 }
 
 func (gs *DStructGeneratedStruct[T]) propagateGenerationFunctions(
-	node *Node[structField],
+	node *Node[StructField],
 	functions core.DefaultGenerationFunctions,
 ) {
 	for _, field := range node.children {
 		if field.HasChildren() &&
-			!gs.fieldContexts[field.data.fullyQualifiedName].GeneratedField.IsCustomType() {
+			!gs.fieldContexts[field.data.qualifiedName].GeneratedField.IsCustomType() {
 			gs.propagateGenerationFunctions(field, functions)
 		} else {
-			gs.fieldContexts[field.data.fullyQualifiedName].GeneratedField.SetGenerationFunctions(functions)
+			gs.fieldContexts[field.data.qualifiedName].GeneratedField.SetGenerationFunctions(functions)
 		}
 	}
 }
 
 func (gs *DStructGeneratedStruct[T]) propagateGenerationFunction(
-	node *Node[structField],
+	node *Node[StructField],
 	functionHolder core.FunctionHolder,
 ) {
 	for _, field := range node.children {
 		if field.HasChildren() &&
-			!gs.fieldContexts[field.data.fullyQualifiedName].GeneratedField.IsCustomType() {
+			!gs.fieldContexts[field.data.qualifiedName].GeneratedField.IsCustomType() {
 			gs.propagateGenerationFunction(field, functionHolder)
 		} else {
-			gs.fieldContexts[field.data.fullyQualifiedName].GeneratedField.SetGenerationFunction(functionHolder)
+			gs.fieldContexts[field.data.qualifiedName].GeneratedField.SetGenerationFunction(functionHolder)
 		}
 	}
 }

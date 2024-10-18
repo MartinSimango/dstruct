@@ -10,13 +10,9 @@ type Builder interface {
 	// Build returns a DynamicStructModifier instance.
 	Build() DynamicStructModifier
 
-	// GetField returns a builder instance of the subfield of the struct that is currently being built.
+	// GetField returns a builder instance of the subfield of the struct that is currently being built. It will panic if the
+	// field is not a struct or does not fully dereference to a struct value. It returns nil if field does not exist.
 	GetField(name string) Builder
-
-	// GetFieldCopy returns a copy of a builder instance of the subfield of the struct that is currently being built.
-	//
-	// Deprecated: this method will be removed use NewBuilderFromField instead.
-	GetFieldCopy(name string) Builder
 
 	// GetNewBuilderFromField returns a new builder instance where the subfield of the struct "field" is the root of the struct.
 	NewBuilderFromField(field string) Builder
