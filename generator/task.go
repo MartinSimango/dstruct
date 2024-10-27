@@ -21,12 +21,6 @@ func init() {
 	tasks = make(map[string]Task)
 }
 
-type TaskProperties struct {
-	TaskName   string
-	Parameters []string
-	FieldName  string
-}
-
 func GetTask(task string) Task {
 	return tasks[task]
 }
@@ -51,11 +45,19 @@ func CreateTaskProperties(fieldName string, tags reflect.StructTag) (*TaskProper
 	gen_task_tag := strings.TrimSpace(tags.Get("gen_task"))
 	leftBraceIndex := strings.Index(gen_task_tag, "(")
 	if leftBraceIndex == -1 {
-		return nil, fmt.Errorf("error with field %s: task %s error: no ( found", fieldName, gen_task_tag)
+		return nil, fmt.Errorf(
+			"error with field %s: task %s error: no ( found",
+			fieldName,
+			gen_task_tag,
+		)
 	}
 
 	if gen_task_tag[len(gen_task_tag)-1:] != ")" {
-		return nil, fmt.Errorf("error with field %s: task %s error: last character of task must be )", fieldName, gen_task_tag)
+		return nil, fmt.Errorf(
+			"error with field %s: task %s error: last character of task must be )",
+			fieldName,
+			gen_task_tag,
+		)
 	}
 	taskName := gen_task_tag[:leftBraceIndex]
 	parameterCount, err := strconv.Atoi(gen_task_tag[leftBraceIndex+1 : len(gen_task_tag)-1])
@@ -71,7 +73,6 @@ func CreateTaskProperties(fieldName string, tags reflect.StructTag) (*TaskProper
 }
 
 func GetTagForTask(name TaskName, params ...any) reflect.StructTag {
-
 	if tasks[string(name)] == nil {
 		panic(fmt.Sprintf("Task '%s' is not registered", name))
 	}
@@ -82,12 +83,18 @@ func GetTagForTask(name TaskName, params ...any) reflect.StructTag {
 	}
 
 	return reflect.StructTag(tags)
-
 }
 
 func ValidateParamCount(task Task, taskProperties TaskProperties) {
 	if len(taskProperties.Parameters) != task.ExpectedParameterCount() {
-		panic(fmt.Sprintf("error with field %s. task '%s': task requires %d parameters but has %d", taskProperties.FieldName, task.Name(), task.ExpectedParameterCount(), len(taskProperties.Parameters)))
+		panic(
+			fmt.Sprintf(
+				"error with field %s. task '%s': task requires %d parameters but has %d",
+				taskProperties.FieldName,
+				task.Name(),
+				task.ExpectedParameterCount(),
+				len(taskProperties.Parameters),
+			),
+		)
 	}
-
 }

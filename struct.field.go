@@ -11,7 +11,7 @@ type StructField struct {
 	tag               reflect.StructTag
 	value             reflect.Value
 	dstructType       reflect.Type
-	goType            reflect.Type
+	goType            string
 	pkgPath           string
 	anonymous         bool
 	jsonName          string
@@ -20,6 +20,14 @@ type StructField struct {
 	ptrKind           reflect.Kind
 	structIndex       *int
 	numberOfSubFields *int
+}
+
+func (f StructField) IsFieldDereferencable() bool {
+	if f.value.Kind() == reflect.Pointer {
+		return f.ptrKind != reflect.Invalid
+	}
+
+	return true
 }
 
 // GetFieldName returns the name of the field.
@@ -32,9 +40,14 @@ func (f StructField) GetValue() any {
 	return f.value.Interface()
 }
 
-// GetType returns the Dstruct type of the field which can be different from the Go type (reflect.TypeOf(val))
-func (f StructField) GetType() reflect.Type {
+// GetDstructType returns the Dstruct type of the field which can be different from the Go type (reflect.TypeOf(val))
+func (f StructField) GetDstructType() reflect.Type {
 	return f.dstructType
+}
+
+// GetGoType returns the Go type of the field.
+func (f StructField) GetGoType() string {
+	return f.goType
 }
 
 // GetQualifiedName returns the fully qualified name of the field.

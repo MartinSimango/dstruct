@@ -21,8 +21,6 @@ func GenerateNumberFunc[n config.Number](
 
 	return &coreGenerationFunction{
 		_func: func(parameters ...any) any {
-			fmt.Println("Refernece to min and max: ", min, max)
-			fmt.Printf("Cfg: %p\n", cfg)
 			return generateNum(*min, *max)
 		},
 		kind: reflect.ValueOf(*new(n)).Kind(),

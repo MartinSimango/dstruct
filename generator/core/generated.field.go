@@ -49,8 +49,8 @@ type GeneratedField struct {
 	Config                    GeneratedFieldConfig
 	Parent                    *GeneratedField
 	PointerValue              *reflect.Value
-	customTypes               map[reflect.Type]FunctionHolder
-	goType                    reflect.Type
+	customTypes               map[string]FunctionHolder
+	goType                    string
 	currentGenerationFunction generator.GenerationFunction
 }
 
@@ -58,8 +58,8 @@ func NewGeneratedField(fqn string,
 	value reflect.Value,
 	tag reflect.StructTag,
 	config GeneratedFieldConfig,
-	customTypes map[reflect.Type]FunctionHolder,
-	goType reflect.Type,
+	customTypes map[string]FunctionHolder,
+	goType string,
 ) *GeneratedField {
 	generateField := &GeneratedField{
 		Name:        fqn,
@@ -76,6 +76,12 @@ func NewGeneratedField(fqn string,
 			generateField,
 			config.GenerationConfig,
 			generateField.Config.GenerationFunctions,
+		)
+	}
+	if value.Kind() == reflect.Ptr {
+		config.GenerationFunctions[reflect.Ptr] = NewPointerFunctionHolder(
+			GeneratePointerValueFunc,
+			generateField,
 		)
 	}
 
@@ -173,7 +179,7 @@ func (field *GeneratedField) SetValue() bool {
 		}
 		GenerateStructFunc(field).Generate()
 	case reflect.Pointer:
-		GeneratePointerValueFunc(field).Generate()
+		field.Value.Set(reflect.ValueOf(GeneratePointerValueFunc(field).Generate()))
 	case reflect.Slice:
 		// Don't allow recursion within slices
 		if field.checkForRecursiveDefinition(true) {
@@ -199,7 +205,7 @@ func (field *GeneratedField) setStructValues() {
 			Config:      field.Config.Copy(field.Value.Field(j).Kind()),
 			Parent:      field,
 			customTypes: field.customTypes,
-			goType:      field.Value.Field(j).Type(),
+			goType:      field.Value.Field(j).Type().Name(),
 		}
 		structField.SetValue()
 	}
@@ -293,9 +299,5 @@ func (field *GeneratedField) getGenerationFunction() generator.GenerationFunctio
 
 	// if we get no match, we default to the default generation function for the kind
 	// kidds of type Slice will be handled here as their default generation function for a slice will be overwritten when the generated field is created.
-	fmt.Printf(
-		"Returning function ref: %p\n",
-		field.Config.GenerationFunctions[kind].GetConfig().Number(),
-	)
 	return field.Config.GenerationFunctions[kind].GetFunction()
 }

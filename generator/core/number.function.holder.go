@@ -1,8 +1,6 @@
 package core
 
 import (
-	"fmt"
-
 	"github.com/MartinSimango/dstruct/generator"
 	"github.com/MartinSimango/dstruct/generator/config"
 )
@@ -24,7 +22,7 @@ func NewNumberFunctionHolder(
 			config: config.NewDstructConfigBuilder().WithNumberConfig(cfg).Build(),
 			fun:    f,
 			resetFunction: func(cfg config.Config) generator.GenerationFunction {
-				fmt.Println("Resetting number function holder")
+				// fmt.Println("Resetting number function holder")
 				return f(cfg.Number())
 			},
 			generationFunction: f(cfg),

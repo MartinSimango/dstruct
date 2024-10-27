@@ -55,9 +55,9 @@ func ExtendStruct(val any) *treeBuilderImpl {
 
 	switch value.Kind() {
 	case reflect.Struct:
-		b.addStructFields(value, b.root, 0)
+		b.root.data.dstructType = b.addStructFields(value, b.root, 0)
 	case reflect.Ptr:
-		b.addPtrField(value, b.root)
+		b.root.data.dstructType = b.addPtrField(value, b.root)
 	}
 
 	return b
@@ -75,7 +75,7 @@ func newBuilderFromNode(node *Node[StructField], resetFQN bool) *treeBuilderImpl
 
 func resetNodeFieldsFQN(node *Node[StructField]) *Node[StructField] {
 	for _, v := range node.children {
-		v.data.qualifiedName = getQualifiedName(node.data.name, v.data.name)
+		v.data.qualifiedName = getQualifiedName(node.data.qualifiedName, v.data.name)
 		resetNodeFieldsFQN(v)
 	}
 	return node
@@ -85,7 +85,14 @@ func (dsb *treeBuilderImpl) AddField(name string, value interface{}, tag string)
 	if dsb.root.HasChild(name) {
 		panic(fmt.Sprintf("Field '%s' already exists", name))
 	}
-	dsb.addFieldToTree(name, value, "", false, reflect.StructTag(tag), dsb.root)
+	dsb.root.data.dstructType = dsb.addFieldToTree(
+		name,
+		value,
+		"",
+		false,
+		reflect.StructTag(tag),
+		dsb.root,
+	)
 	return dsb
 }
 
@@ -160,7 +167,7 @@ func (dsb *treeBuilderImpl) getNode(field string) *Node[StructField] {
 
 func (db *treeBuilderImpl) Build() DynamicStructModifier {
 	rootCopy := db.root.Copy()
-	// Ensure that the current node is treated is root when struct is built
+	// Ensure that the current node is treated as root when struct is built
 	if db.root.parent != nil {
 		rootCopy.data.name = "#root"
 		rootCopy.data.qualifiedName = "#root"
@@ -175,14 +182,18 @@ func (db *treeBuilderImpl) buildStruct(tree *Node[StructField]) any {
 	// set the value of the struct fields. Currently the tree structure contains the values of the fields
 	// so we need to copy the values to the struct fields
 	if db.setValues {
-		if structValue.Elem().Kind() == reflect.Ptr {
-			setPointerFieldValue(structValue.Elem(), tree)
-		} else {
-			setStructFieldValues(structValue.Elem(), tree)
-		}
+		setValues(structValue.Elem(), tree)
 	}
 
 	return structValue.Interface()
+}
+
+func setValues(value reflect.Value, tree *Node[StructField]) {
+	if value.Kind() == reflect.Ptr {
+		setPointerFieldValue(value, tree)
+	} else {
+		setStructFieldValues(value, tree)
+	}
 }
 
 func (dsb *treeBuilderImpl) addFieldToTree(
@@ -202,12 +213,17 @@ func (dsb *treeBuilderImpl) addFieldToTree(
 	} else {
 		*root.data.numberOfSubFields++
 	}
-	goType := reflect.TypeOf(value.Interface())
+
+	var goType string
+	if goType = tag.Get("goType"); goType == "" {
+		goType = value.Type().Name()
+	}
+
 	field := &StructField{
 		name:        name,
 		value:       value, // this will initally be unaddressable until the struct is built
 		tag:         tag,
-		dstructType: goType,
+		dstructType: value.Type(),
 		goType:      goType,
 		pkgPath:     pkgPath,
 		anonymous:   anonymous,
@@ -298,6 +314,7 @@ func setStructFieldValues(strct reflect.Value, root *Node[StructField]) {
 
 		}
 		//  make the tree node value point to the struct field - ensuring that when the node value changes the struct field value changes
+		// also update the node value to actually have a memory address
 		currentNode.data.value = field
 
 		// if currentNode.data.anonymous {
@@ -347,6 +364,15 @@ func (dsb *treeBuilderImpl) addStructFields(
 	for i := 0; i < strct.NumField(); i++ {
 		fieldName := strct.Type().Field(i).Name
 		fieldTag := strct.Type().Field(i).Tag
+
+		if fieldTag.Get("goType") == "" {
+			fieldTag = (reflect.StructTag)(strings.TrimSpace(fmt.Sprintf(
+				"%s goType:\"%s\"",
+				fieldTag,
+				strct.Field(i).Type(),
+			)))
+		}
+
 		var fieldValue any
 		if strct.Type().Field(i).IsExported() {
 			fieldValue = strct.Field(i).Interface()
@@ -358,6 +384,16 @@ func (dsb *treeBuilderImpl) addStructFields(
 		pkgPath := strct.Type().Field(i).PkgPath
 		anonymous := strct.Type().Field(i).Anonymous
 		fieldType := dsb.addFieldToTree(fieldName, fieldValue, pkgPath, anonymous, fieldTag, root)
+		// fmt.Printf(
+		// 	"\nfieldType: '%s' %+v %+v %+v PO: %+v S: %+v \n",
+		// 	fieldName,
+		// 	fieldType,
+		// 	reflect.TypeOf(fieldValue),
+		// 	strct.Field(i).Type(),
+		// 	reflect.TypeOf(reflect.ValueOf(fieldValue).Interface()),
+		// 	reflect.TypeOf(strct.Interface()),
+		// )
+		// // // fmt.Println()
 
 		if anonymous {
 			pkgPath = ""

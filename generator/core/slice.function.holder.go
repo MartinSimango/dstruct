@@ -25,6 +25,9 @@ func NewSliceFunctionHolder(
 		BaseFunctionHolder: BaseFunctionHolder{
 			config: cfg,
 			fun:    f,
+			resetFunction: func(cfg config.Config) generator.GenerationFunction {
+				return f(field, cfg, generationFunctions)
+			},
 		},
 		field:               field,
 		generationFunctions: generationFunctions,
