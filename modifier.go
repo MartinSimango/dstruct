@@ -155,7 +155,6 @@ func (dm *DynamicStructModifierImpl) Set(field string, value any) error {
 
 // update updates the struct's underlying node to represent that of the strct's value.
 func (dm *DynamicStructModifierImpl) update(node *Node[StructField]) {
-	fmt.Println("updating node", node.data.qualifiedName, node.data.value)
 	nodeValue := node.data.value
 	if canExtend(nodeValue.Interface()) {
 		node.children = ExtendStruct(nodeValue.Interface()).root.children

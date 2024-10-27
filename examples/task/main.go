@@ -99,11 +99,11 @@ type P struct {
 type Test struct {
 	// A      *int
 	// S      string
-	// C      int
+	C      int
 	Person P `json:"person"`
 
-	// Cpoint *int
-	T time.Time
+	Cpoint *int
+	T      time.Time
 
 	// Pa     []Pa
 	// Parray []Person
@@ -112,41 +112,41 @@ type Test struct {
 }
 
 func main() {
-	e := dstruct.ExtendStruct(Test{}).Build().Instance()
-	createTime := time.Now()
-	// for i := 0; i < 1; i++ {
-	// 	estruct.AddField(fmt.Sprintf("Test_%d", i), Test{}, "")
-	// }
-	fmt.Println(time.Since(createTime))
-	// b := estruct.Build()
+	// e := dstruct.ExtendStruct(Test{}).Build().Instance()
+	// createTime := time.Now()
+	// // for i := 0; i < 1; i++ {
+	// // 	estruct.AddField(fmt.Sprintf("Test_%d", i), Test{}, "")
+	// // }
+	// fmt.Println(time.Since(createTime))
+	// // b := estruct.Build()
+	// //
+	// st := config.GenerationSettings{SetNonRequiredFields: true}
+	// gestruct := dstruct.NewGeneratedStructWithConfig(e,
+	// 	config.NewDstructConfig(),
+	// 	st,
+	// )
 	//
-	st := config.GenerationSettings{SetNonRequiredFields: true}
-	gestruct := dstruct.NewGeneratedStructWithConfig(e,
-		config.NewDstructConfig(),
-		st,
-	)
-
-	c := gestruct.GetGenerationConfig()
-	c.SetIntRange(20, 50)
-	st.SetNonRequiredFields = false
-
-	// gestruct.SetFieldGenerationSettings("Person", st)
-	// gestruct.SetFieldGenerationConfig("Person", c)
-
-	gTime := time.Now()
-	gestruct.Generate()
-	// gestruct.Update()
-	// gestruct.Set("Person.P", Person{Age: new(int), Time: time.Now()})
-	err := gestruct.Set(
-		"Person.P",
-		Person{Age: new(int), Time: time.Now(), Other: &M{Name: "Martin"}},
-	)
-	if err != nil {
-		// panic(err)
-	}
-
-	fmt.Println("Time to generate: ", time.Since(gTime))
-	fmt.Printf("%+v\n", gestruct.Get_("Person.P.Other.Name"))
+	// c := gestruct.GetGenerationConfig()
+	// c.SetIntRange(20, 50)
+	// st.SetNonRequiredFields = false
+	//
+	// // gestruct.SetFieldGenerationSettings("Person", st)
+	// // gestruct.SetFieldGenerationConfig("Person", c)
+	//
+	// gTime := time.Now()
+	// gestruct.Generate()
+	// // gestruct.Update()
+	// // gestruct.Set("Person.P", Person{Age: new(int), Time: time.Now()})
+	// err := gestruct.Set(
+	// 	"Person.P",
+	// 	Person{Age: new(int), Time: time.Now(), Other: &M{Name: "Martin"}},
+	// )
+	// if err != nil {
+	// 	// panic(err)
+	// }
+	//
+	// fmt.Println("Time to generate: ", time.Since(gTime))
+	// fmt.Printf("%+v\n", gestruct.Get_("Person.P.Other.Name"))
 	// for field := range gestruct.GetFields() {
 	// fmt.Println("Field: ", field)
 	// fmt.Printf(
@@ -157,26 +157,26 @@ func main() {
 	// )
 	// }
 
-	// generatedStuct := dstruct.NewGeneratedStructWithConfig(
-	// 	Test{Cpoint: new(int)},
-	// 	config.NewDstructConfig().SetSliceLength(3, 3),
-	// 	config.DefaultGenerationSettings(),
-	// )
-	// gt := &GenInt32Task{}
-	// generator.AddTask(gt)
-	// if err := generatedStuct.Set("Person.P", &Person{}); err != nil {
-	// 	panic(err)
-	// }
-	// generatedStuct.SetFieldGenerationConfig(
-	// 	"Person.Value",
-	// 	config.NewDstructConfig().SetIntRange(800, 1000),
-	// )
-	//
-	// // generatedStuct.SetFieldFromTask("C", gt, 300, 400)
-	// // generatedStuct.Update()
-	// generatedStuct.Generate()
-	//
-	// fmt.Printf("%+v\n", generatedStuct.Get_("Person.P"))
-	//
+	generatedStuct := dstruct.NewGeneratedStructWithConfig(
+		Test{Cpoint: new(int)},
+		config.NewDstructConfig().SetSliceLength(3, 3),
+		config.DefaultGenerationSettings(),
+	)
+	gt := &GenInt32Task{}
+	generator.AddTask(gt)
+	if err := generatedStuct.Set("Person.P", Person{}); err != nil {
+		panic(err)
+	}
+	generatedStuct.SetFieldGenerationConfig(
+		"Person.Value",
+		config.NewDstructConfig().SetIntRange(800, 1000),
+	)
+
+	generatedStuct.SetFieldFromTask("C", gt, 300, 400)
+	// generatedStuct.Update()
+	generatedStuct.Generate()
+
+	fmt.Printf("%+v\n", generatedStuct)
+
 	fmt.Println("Testing task")
 }
