@@ -40,7 +40,7 @@ func GenerateSliceFunc(
 					Config:      fieldConfig,
 					Parent:      field,
 					customTypes: field.customTypes,
-					goType:      elemValue.Type(),
+					goType:      elemValue.Type().Name(),
 				}
 
 				newField.SetValue()

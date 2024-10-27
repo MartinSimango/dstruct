@@ -1,7 +1,6 @@
 package core
 
 import (
-	"fmt"
 	"reflect"
 
 	"github.com/MartinSimango/dstruct/generator/config"
@@ -13,12 +12,13 @@ func (d DefaultGenerationFunctions) Copy(
 	cfg config.Config,
 	kind reflect.Kind,
 ) (dgf DefaultGenerationFunctions) {
-	// look at the kind and only return what needs to be copied
 	dgf = make(DefaultGenerationFunctions)
-	if d[kind] == nil {
-		// Copy ll the functions if the kind is not found
-		// TODO: check if this can ever happen
-		fmt.Println("Kind not found", kind)
+	// if kind can have subfields, copy the generation functions
+	// For example if kind is ptr it could be pointing to a struct that has fields of different types
+	// and those different types will have different generation functions
+	if kind == reflect.Pointer || kind == reflect.Struct || kind == reflect.Slice ||
+		kind == reflect.Array {
+
 		for k, v := range d {
 			dgf[k] = v.Copy(cfg)
 		}

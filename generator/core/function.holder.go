@@ -53,6 +53,7 @@ func (c *BaseFunctionHolder) Copy(cfg config.Config) (bf BaseFunctionHolder) {
 	return
 }
 
+// TODO: this is not used reoved it?
 func (c *BaseFunctionHolder) Kind() reflect.Kind {
 	return c.generationFunction.Kind()
 }
