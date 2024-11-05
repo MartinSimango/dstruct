@@ -286,15 +286,17 @@ func (field *GeneratedField) getGenerationFunction() generator.GenerationFunctio
 
 	_, ok = tags.Lookup("gen_task")
 	if ok {
-		taskProperties, err := generator.CreateTaskProperties(field.Name, tags)
+
+		taskProperties, err := generator.CreateTaskPropertiesFromTag(tags)
 		if err != nil {
-			panic(fmt.Sprintf("Error decoding gen_task: %s", err.Error()))
+			panic(fmt.Sprintf("Error decoding gen_task for '%s': %s", field.Name, err.Error()))
 		}
 		task := generator.GetTask(taskProperties.TaskName)
 		if task == nil {
 			panic(fmt.Sprintf("Unregistered task %s", taskProperties.TaskName))
 		}
-		return task.GenerationFunction(*taskProperties)
+		return task.Instance(taskProperties.Parameters()...).GenerationFunction()
+
 	}
 
 	// if we get no match, we default to the default generation function for the kind
