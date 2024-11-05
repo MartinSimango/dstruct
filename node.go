@@ -26,6 +26,10 @@ func (n *Node[T]) HasChildren() bool {
 	return len(n.children) > 0
 }
 
+func (n *Node[T]) HasChild(name string) bool {
+	return n.children[name] != nil
+}
+
 func (n *Node[T]) Copy() *Node[T] {
 	newNode := &Node[T]{
 		data:     new(T),

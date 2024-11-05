@@ -9,9 +9,9 @@ import (
 	"github.com/MartinSimango/dstruct/dreflect"
 )
 
-type FieldNode map[string]*Node[structField]
+type FieldNode map[string]*Node[StructField]
 
-type FieldData map[string]structField
+type FieldData map[string]StructField
 
 type DynamicStructModifier interface {
 	// Instance returns a copy of the struct
@@ -32,7 +32,7 @@ type DynamicStructModifier interface {
 	Set(field string, value any) error
 
 	// GetFields returns a map containing all fields within a struct
-	GetFields() FieldData
+	GetFields() map[string]StructField
 
 	// Update updates the struct's underlying tree to represent that of the strct's value.
 	// The structs underlying tree can change if new fields are added due to fields within the struct changing from
@@ -43,32 +43,32 @@ type DynamicStructModifier interface {
 	Apply(field string, value any) error
 }
 
-type FieldModifier func(*structField)
+type FieldModifier func(*StructField)
 
 type DynamicStructModifierImpl struct {
 	strct        any
 	fieldNodeMap FieldNode
-	fieldData    map[string]structField
-	root         *Node[structField]
+	fieldData    map[string]StructField
+	root         *Node[StructField]
 }
 
 var _ DynamicStructModifier = &DynamicStructModifierImpl{}
 
-func newStruct(strct any, rootNode *Node[structField]) *DynamicStructModifierImpl {
+func newStruct(strct any, rootNode *Node[StructField]) *DynamicStructModifierImpl {
 	dsm := &DynamicStructModifierImpl{
 		strct:        strct,
 		fieldNodeMap: make(FieldNode),
-		fieldData:    make(map[string]structField),
+		fieldData:    make(map[string]StructField),
 		root:         rootNode,
 	}
 	dsm.createFieldToNodeMappings(rootNode)
 	return dsm
 }
 
-func (dm *DynamicStructModifierImpl) createFieldToNodeMappings(rootNode *Node[structField]) {
+func (dm *DynamicStructModifierImpl) createFieldToNodeMappings(rootNode *Node[StructField]) {
 	for _, field := range rootNode.children {
-		dm.fieldNodeMap[field.data.fullyQualifiedName] = field
-		dm.fieldData[field.data.fullyQualifiedName] = *field.data
+		dm.fieldNodeMap[field.data.qualifiedName] = field
+		dm.fieldData[field.data.qualifiedName] = *field.data
 		dm.createFieldToNodeMappings(field)
 	}
 }
@@ -81,7 +81,7 @@ func (dm *DynamicStructModifierImpl) Instance() any {
 	return dreflect.GetUnderlyingPointerValue(dm.strct)
 }
 
-func (dm *DynamicStructModifierImpl) get(field string) (n *Node[structField]) {
+func (dm *DynamicStructModifierImpl) get(field string) (n *Node[StructField]) {
 	return dm.fieldNodeMap[field]
 }
 
@@ -115,7 +115,7 @@ func isFieldExported(field string) bool {
 }
 
 func (dm *DynamicStructModifierImpl) Set(field string, value any) error {
-	var f *Node[structField]
+	var f *Node[StructField]
 	if f = dm.get(field); f == nil {
 		return fmt.Errorf("field %s does not exists in struct", field)
 	}
@@ -123,9 +123,8 @@ func (dm *DynamicStructModifierImpl) Set(field string, value any) error {
 	if !isFieldExported(field) {
 		return fmt.Errorf("field %s is not exported", field)
 	}
-
 	fieldValue := f.data.value
-	if !canExtend(value) {
+	if !canExtend(value) { // if value is not a struct
 		if value == nil {
 			if !fieldValue.IsZero() {
 				fieldValue.Set(reflect.Zero(fieldValue.Type()))
@@ -133,17 +132,27 @@ func (dm *DynamicStructModifierImpl) Set(field string, value any) error {
 			return nil
 		}
 		fieldValue.Set(dreflect.Convert(reflect.ValueOf(value), fieldValue.Type()))
+
 		return nil
 	}
 
 	fieldValue.Set(dreflect.Convert(reflect.ValueOf(value), fieldValue.Type()))
-
-	// TODO: should we update the struct here? and then remove the Update and Apply methods
+	dm.update(f)
 
 	return nil
 }
 
-func (dm *DynamicStructModifierImpl) GetFields() FieldData {
+// update updates the struct's underlying node to represent that of the strct's value.
+func (dm *DynamicStructModifierImpl) update(node *Node[StructField]) {
+	nodeValue := node.data.value
+	if canExtend(nodeValue.Interface()) {
+		node.children = ExtendStruct(nodeValue.Interface()).root.children
+		setValues(nodeValue, resetNodeFieldsFQN(node))
+		dm.createFieldToNodeMappings(node)
+	}
+}
+
+func (dm *DynamicStructModifierImpl) GetFields() map[string]StructField {
 	return dm.fieldData
 }
 

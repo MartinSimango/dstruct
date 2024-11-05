@@ -25,7 +25,7 @@ type DStructGeneratedStruct[T any] struct {
 	fieldContexts GeneratedFieldContexts
 	structConfig  core.GeneratedFieldConfig
 	instance      T
-	customTypes   map[reflect.Type]core.FunctionHolder
+	customTypes   map[string]core.FunctionHolder
 }
 
 var _ GeneratedStruct = &DStructGeneratedStruct[int]{}
@@ -50,11 +50,11 @@ func NewGeneratedStructWithConfig[T any](val T,
 			cfg,
 			settings,
 		),
-		customTypes: make(map[reflect.Type]core.FunctionHolder),
+		customTypes: make(map[string]core.FunctionHolder),
 	}
 
 	for _, v := range customTypes {
-		generatedStruct.addCustomType(v)
+		generatedStruct.AddCustomType(v)
 	}
 	generatedStruct.addCustomTypes()
 	generatedStruct.populateGeneratedFields(generatedStruct.root)
@@ -74,6 +74,11 @@ func (gs *DStructGeneratedStruct[T]) NewT() *T {
 
 // Generate implements GeneratedStruct.Generate.
 func (gs *DStructGeneratedStruct[T]) Generate() {
+	// TODO: should only be called if new struct fields are generated
+	// an idea is to have generatedFields return a bool to indicate if new fields were generated
+	// also make this method private
+
+	// gs.populateGeneratedFields(gs.root) // in case new fields are added /
 	gs.generateFields()
 
 	switch any(*new(T)).(type) {
@@ -83,10 +88,14 @@ func (gs *DStructGeneratedStruct[T]) Generate() {
 	}
 
 	gs.instance = toType[T](gs.DynamicStructModifierImpl)
+}
 
-	// TODO: should only be called if new struct fields are generated
-	// an idea is to have generatedFields return a bool to indicate if new fields were generated
-	gs.Update()
+func (gs *DStructGeneratedStruct[T]) Set(field string, value any) error {
+	if err := gs.DynamicStructModifierImpl.Set(field, value); err != nil {
+		return err
+	}
+	gs.populateGeneratedFields(gs.fieldNodeMap[field].parent)
+	return nil
 }
 
 // SetFieldGenerationSettings implements GeneratedStruct.SetFieldGenerationSettings
@@ -148,7 +157,7 @@ func (gs *DStructGeneratedStruct[T]) SetFieldGenerationConfig(
 		return err
 	}
 
-	if gs.fieldContexts[field] == nil {
+	if gs.fieldContexts[field] == nil { // if field has children
 		gs.propagateConfig(gs.fieldNodeMap[field], cfg)
 	} else {
 		// this will be fields that are either custom types or fields that have no children
@@ -257,24 +266,18 @@ func (gs *DStructGeneratedStruct[T]) SetGenerationFunctions(
 	gs.propagateGenerationFunctions(gs.root, functions)
 }
 
-// SetFieldFromTask implements GeneratedStruct.SetFieldFromTask
-func (gs *DStructGeneratedStruct[T]) SetFieldFromTask(
+// SetFieldFromTaskInstance implements GeneratedStruct.SetFieldFromTaskInstanc
+func (gs *DStructGeneratedStruct[T]) SetFieldFromTaskInstance(
 	field string,
-	task generator.Task,
-	params ...any,
+	taskInstance generator.TaskInstance,
 ) error {
-	taskProperties, err := generator.CreateTaskProperties(
-		field,
-		generator.GetTagForTask(generator.TaskName(task.Name()), params...),
-	)
-	if err != nil {
-		return err
-	}
-
 	gs.SetFieldGenerationFunction(
 		field,
-		core.NewFunctionHolderNoArgs(task.GenerationFunction(*taskProperties)),
+		core.NewFunctionHolderNoArgs(
+			taskInstance.GenerationFunction(),
+		),
 	)
+
 	return nil
 }
 
@@ -311,15 +314,21 @@ func toPointerType[T any](gs DynamicStructModifier) *T {
 }
 
 func (gs *DStructGeneratedStruct[T]) generateFields() {
+	// wg := sync.WaitGroup{}
 	for k, genFunc := range gs.fieldContexts {
+		// wg.Add(1)
+		// go func(k string, genFunc *core.GeneratedFieldContext) {
 		if err := gs.Set(k, genFunc.Generate()); err != nil {
 			fmt.Println(err)
 		}
+		// wg.Done()
+		// }(k, genFunc)
 	}
+	// wg.Wait()
 }
 
 func (gs *DStructGeneratedStruct[T]) addCustomTypes() {
-	gs.addCustomType(
+	gs.AddCustomType(
 		CustomType{
 			time.Time{},
 			core.DefaultDateFunctionHolder(gs.structConfig.GenerationConfig.Date()),
@@ -327,19 +336,19 @@ func (gs *DStructGeneratedStruct[T]) addCustomTypes() {
 	)
 }
 
-func (gs *DStructGeneratedStruct[T]) addCustomType(customType CustomType) {
+func (gs *DStructGeneratedStruct[T]) AddCustomType(customType CustomType) {
 	// TODO: restrict some types from being added such as nil, ints etc
-	gs.customTypes[reflect.TypeOf(customType.Value)] = customType.FunctionHolder
+	gs.customTypes[reflect.TypeOf(customType.Value).String()] = customType.FunctionHolder
 	// the function holder kind is the find that the function retrusn which could either be an existing kind or a new kind i.ie time.Time would be a new kind
 	// TODO:idea: GenerationsFunction key should be type of CustomKind and not reflect.Kind
 	gs.structConfig.GenerationFunctions[customType.FunctionHolder.Kind()] = customType.FunctionHolder
 }
 
 func (gs *DStructGeneratedStruct[T]) createGeneratedField(
-	field *Node[structField],
+	field *Node[StructField],
 	kind reflect.Kind,
 ) *core.GeneratedField {
-	v := core.NewGeneratedField(field.data.fullyQualifiedName,
+	v := core.NewGeneratedField(field.data.qualifiedName,
 		field.data.value,
 		field.data.tag,
 		gs.structConfig.Copy(kind),
@@ -348,16 +357,20 @@ func (gs *DStructGeneratedStruct[T]) createGeneratedField(
 	return v
 }
 
-func (gs *DStructGeneratedStruct[T]) populateGeneratedFields(node *Node[structField]) {
+func (gs *DStructGeneratedStruct[T]) populateGeneratedFields(node *Node[StructField]) {
 	for _, field := range node.children {
+		if gs.fieldContexts[field.data.qualifiedName] != nil {
+			continue
+		}
+
 		if customType := gs.customTypes[field.data.goType]; customType != nil {
-			gs.fieldContexts[field.data.fullyQualifiedName] = core.NewGeneratedFieldContext(
+			gs.fieldContexts[field.data.qualifiedName] = core.NewGeneratedFieldContext(
 				gs.createGeneratedField(field, customType.Kind()),
 			)
 		} else if field.HasChildren() {
 			gs.populateGeneratedFields(field)
 		} else {
-			gs.fieldContexts[field.data.fullyQualifiedName] = core.NewGeneratedFieldContext(
+			gs.fieldContexts[field.data.qualifiedName] = core.NewGeneratedFieldContext(
 				gs.createGeneratedField(field, field.data.value.Kind()),
 			)
 		}
@@ -365,58 +378,56 @@ func (gs *DStructGeneratedStruct[T]) populateGeneratedFields(node *Node[structFi
 }
 
 func (gs *DStructGeneratedStruct[T]) propagateConfig(
-	node *Node[structField],
+	node *Node[StructField],
 	cfg config.Config,
 ) {
 	for _, field := range node.children {
 		// Don't propagate changes to children nodes if the field is a custom type
-		if field.HasChildren() &&
-			!gs.fieldContexts[field.data.fullyQualifiedName].GeneratedField.IsCustomType() {
+		if field.HasChildren() && gs.customTypes[field.data.goType] == nil {
 			gs.propagateConfig(field, cfg)
 		} else {
-			gs.fieldContexts[field.data.fullyQualifiedName].GeneratedField.SetConfig(cfg)
+			gs.fieldContexts[field.data.qualifiedName].GeneratedField.SetConfig(cfg)
 		}
 	}
 }
 
 func (gs *DStructGeneratedStruct[T]) propagateSettings(
-	node *Node[structField],
+	node *Node[StructField],
 	settings config.GenerationSettings,
 ) {
 	for _, field := range node.children {
-		if field.HasChildren() &&
-			!gs.fieldContexts[field.data.fullyQualifiedName].GeneratedField.IsCustomType() {
+		if field.HasChildren() && gs.customTypes[field.data.goType] == nil {
 			gs.propagateSettings(field, settings)
 		} else {
-			gs.fieldContexts[field.data.fullyQualifiedName].GeneratedField.SetGenerationSettings(settings)
+			gs.fieldContexts[field.data.qualifiedName].GeneratedField.SetGenerationSettings(settings)
 		}
 	}
 }
 
 func (gs *DStructGeneratedStruct[T]) propagateGenerationFunctions(
-	node *Node[structField],
+	node *Node[StructField],
 	functions core.DefaultGenerationFunctions,
 ) {
 	for _, field := range node.children {
 		if field.HasChildren() &&
-			!gs.fieldContexts[field.data.fullyQualifiedName].GeneratedField.IsCustomType() {
+			!gs.fieldContexts[field.data.qualifiedName].GeneratedField.IsCustomType() {
 			gs.propagateGenerationFunctions(field, functions)
 		} else {
-			gs.fieldContexts[field.data.fullyQualifiedName].GeneratedField.SetGenerationFunctions(functions)
+			gs.fieldContexts[field.data.qualifiedName].GeneratedField.SetGenerationFunctions(functions)
 		}
 	}
 }
 
 func (gs *DStructGeneratedStruct[T]) propagateGenerationFunction(
-	node *Node[structField],
+	node *Node[StructField],
 	functionHolder core.FunctionHolder,
 ) {
 	for _, field := range node.children {
 		if field.HasChildren() &&
-			!gs.fieldContexts[field.data.fullyQualifiedName].GeneratedField.IsCustomType() {
+			!gs.fieldContexts[field.data.qualifiedName].GeneratedField.IsCustomType() {
 			gs.propagateGenerationFunction(field, functionHolder)
 		} else {
-			gs.fieldContexts[field.data.fullyQualifiedName].GeneratedField.SetGenerationFunction(functionHolder)
+			gs.fieldContexts[field.data.qualifiedName].GeneratedField.SetGenerationFunction(functionHolder)
 		}
 	}
 }

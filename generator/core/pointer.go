@@ -13,18 +13,32 @@ func GeneratePointerValueFunc(field *GeneratedField) generator.GenerationFunctio
 			if !field.Config.GenerationSettings.SetNonRequiredFields {
 				return nil
 			}
-
-			field.Value.Set(reflect.New(field.Value.Type().Elem()))
+			// t := field.Value.Interface()
+			// field.Value.Set(reflect.New(field.Value.Type().Elem()))
+			fieldValueCopy := reflect.New(field.Value.Type()).Elem()
+			fieldValueCopy.Set(reflect.New(field.Value.Type().Elem()))
 			fieldPointerValue := *field
-			fieldPointerValue.Value = field.Value.Elem()
-			fieldPointerValue.PointerValue = &field.Value
+			fieldPointerValue.Value = fieldValueCopy.Elem()
+			fieldPointerValue.PointerValue = &fieldValueCopy
 			fieldPointerValue.SetValue()
 
-			if field.Value.Elem().CanSet() {
-				field.Value.Elem().Set(fieldPointerValue.Value)
+			if fieldValueCopy.Elem().CanSet() {
+				fieldValueCopy.Elem().Set(fieldPointerValue.Value)
 			}
+			return fieldValueCopy.Interface()
 
-			return field.Value.Interface()
+			// field.Value.Set(reflect.New(field.Value.Type().Elem()))
+			// fieldPointerValue := *field
+			// fieldPointerValue.Value = field.Value.Elem()
+			// fieldPointerValue.PointerValue = &field.Value
+			// fieldPointerValue.SetValue()
+
+			// if field.Value.Elem().CanSet() {
+			// 	field.Value.Elem().Set(fieldPointerValue.Value)
+			// }
+			//
+			//
+			// return field.Value.Interface()
 		},
 		kind: reflect.Ptr,
 		args: []any{field},
