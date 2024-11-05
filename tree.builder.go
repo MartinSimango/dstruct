@@ -384,16 +384,6 @@ func (dsb *treeBuilderImpl) addStructFields(
 		pkgPath := strct.Type().Field(i).PkgPath
 		anonymous := strct.Type().Field(i).Anonymous
 		fieldType := dsb.addFieldToTree(fieldName, fieldValue, pkgPath, anonymous, fieldTag, root)
-		// fmt.Printf(
-		// 	"\nfieldType: '%s' %+v %+v %+v PO: %+v S: %+v \n",
-		// 	fieldName,
-		// 	fieldType,
-		// 	reflect.TypeOf(fieldValue),
-		// 	strct.Field(i).Type(),
-		// 	reflect.TypeOf(reflect.ValueOf(fieldValue).Interface()),
-		// 	reflect.TypeOf(strct.Interface()),
-		// )
-		// // // fmt.Println()
 
 		if anonymous {
 			pkgPath = ""

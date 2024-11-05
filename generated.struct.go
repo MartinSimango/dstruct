@@ -72,6 +72,12 @@ type GeneratedStruct interface {
 	// SetGenerationFunctions sets the generation functions for the struct and propagates the settings to all fields
 	SetGenerationFunctions(functions core.DefaultGenerationFunctions)
 
-	// SetFieldFromTask sets the field value from the task. The task is used to generate the value for the field.
-	SetFieldFromTask(field string, task generator.Task, params ...any) error
+	// SetFieldFromTaskInstance sets the field value from the task instance. The task is used to generate the value for the field.
+	SetFieldFromTaskInstance(
+		field string,
+		taskInstance generator.TaskInstance,
+	) error
+
+	// AddCustomType adds a custom type to the struct. The custom type is used to generate values for fields of the custom type.
+	AddCustomType(customType CustomType)
 }

@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	GenInt32 generator.TaskName = "GenInt32"
+	GenInt32 string = "GenInt32"
 )
 
 type genInt32Params struct {
@@ -20,60 +20,59 @@ type genInt32Params struct {
 	max int32
 }
 
-type GenInt32Task struct{}
-
-// Ensure GenInt32Task implements Task.
-var _ generator.Task = &GenInt32Task{}
-
-// Tags implements Task.
-func (g *GenInt32Task) Name() string {
-	return string(GenInt32)
+type GenInt32Task struct {
+	generator.BaseTask
+	numberConfig config.NumberRangeConfig
 }
 
-// GenerationFunction implements Task.
-func (g *GenInt32Task) GenerationFunction(
-	taskProperties generator.TaskProperties,
-) generator.GenerationFunction {
-	generator.ValidateParamCount(g, taskProperties)
-	params := g.getInt32Params(taskProperties.FieldName, taskProperties.Parameters)
-	numberConfig := config.NewNumberRangeConfig()
-	numberConfig.Int().SetRange(int(params.min), int(params.max))
-	return core.GenerateNumberFunc[int](numberConfig)
+type GenInt32TaskInstance struct {
+	GenInt32Task
+	genFunc generator.GenerationFunction
 }
 
-func (g *GenInt32Task) ExpectedParameterCount() int {
-	return 2
+var (
+	_ generator.TaskInstance = &GenInt32TaskInstance{}
+	// Ensure GenInt32Task implements Task.
+	_ generator.Task = &GenInt32Task{}
+)
+
+func NewGenInt32Task() *GenInt32Task {
+	gt := &GenInt32Task{
+		numberConfig: config.NewNumberRangeConfig(),
+		BaseTask:     *generator.NewBaseTask(string(GenInt32), 2),
+	}
+	return gt
 }
 
-func (g *GenInt32Task) FunctionHolder(taskProperties generator.TaskProperties) core.FunctionHolder {
-	return core.NewFunctionHolderNoArgs(g.GenerationFunction(taskProperties))
+func (g GenInt32Task) Instance(params ...string) generator.TaskInstance {
+	gt := &GenInt32TaskInstance{
+		GenInt32Task: g,
+	}
+	gt.numberConfig = g.numberConfig.Copy()
+	gt.SetParameters(params...)
+	gt.genFunc = core.GenerateNumberFunc[int32](gt.numberConfig)
+	return gt
 }
 
-func (g *GenInt32Task) getInt32Params(fieldName string, params []string) genInt32Params {
-	param_1, err := strconv.Atoi(params[0])
+func (g *GenInt32TaskInstance) GenerationFunction() generator.GenerationFunction {
+	return g.genFunc
+}
+
+func (g *GenInt32TaskInstance) SetParameters(params ...string) {
+	g.ValidateParamCount(params...)
+	min, err := strconv.Atoi(params[0])
 	if err != nil {
-		panic(fmt.Sprintf("error with field %s: task %s error: %s", fieldName, GenInt32, err))
+		panic(fmt.Sprintf("Error parsing min value: %s", err))
 	}
-
-	param_2, err := strconv.Atoi(params[1])
+	max, err := strconv.Atoi(params[1])
 	if err != nil {
-		panic(fmt.Sprintf("error with field %s: task %s error: %s", fieldName, GenInt32, err))
+		panic(fmt.Sprintf("Error parsing max value: %s", err))
 	}
 
-	if param_1 > param_2 {
-		err = fmt.Errorf(
-			"min must be less or equal to the max value min = %d max = %d",
-			param_1,
-			param_2,
-		)
-		panic(fmt.Sprintf("error with field %s: task %s error: %s", fieldName, GenInt32, err))
-
+	if min > max {
+		panic(fmt.Sprintf("min value %d is greater than max value %d", min, max))
 	}
-
-	return genInt32Params{
-		min: int32(param_1),
-		max: int32(param_2),
-	}
+	g.numberConfig.Int32().SetRange(int32(min), int32(max))
 }
 
 type M struct {
@@ -81,14 +80,9 @@ type M struct {
 }
 
 type Person struct {
-	// Love ABC
 	Age   *int
 	Time  time.Time
 	Other *M
-
-	// Parray []Person
-
-	// Person *Person
 }
 
 type P struct {
@@ -97,72 +91,20 @@ type P struct {
 }
 
 type Test struct {
-	// A      *int
-	// S      string
-	C      int
-	Person P `json:"person"`
-
+	B      int32 `gen_task:"GenInt32(2)" gen_task_1:"10" gen_task_2:"20"`
+	C      int32
+	Person P
 	Cpoint *int
 	T      time.Time
-
-	// Pa     []Pa
-	// Parray []Person
-
-	// L
 }
 
 func main() {
-	// e := dstruct.ExtendStruct(Test{}).Build().Instance()
-	// createTime := time.Now()
-	// // for i := 0; i < 1; i++ {
-	// // 	estruct.AddField(fmt.Sprintf("Test_%d", i), Test{}, "")
-	// // }
-	// fmt.Println(time.Since(createTime))
-	// // b := estruct.Build()
-	// //
-	// st := config.GenerationSettings{SetNonRequiredFields: true}
-	// gestruct := dstruct.NewGeneratedStructWithConfig(e,
-	// 	config.NewDstructConfig(),
-	// 	st,
-	// )
-	//
-	// c := gestruct.GetGenerationConfig()
-	// c.SetIntRange(20, 50)
-	// st.SetNonRequiredFields = false
-	//
-	// // gestruct.SetFieldGenerationSettings("Person", st)
-	// // gestruct.SetFieldGenerationConfig("Person", c)
-	//
-	// gTime := time.Now()
-	// gestruct.Generate()
-	// // gestruct.Update()
-	// // gestruct.Set("Person.P", Person{Age: new(int), Time: time.Now()})
-	// err := gestruct.Set(
-	// 	"Person.P",
-	// 	Person{Age: new(int), Time: time.Now(), Other: &M{Name: "Martin"}},
-	// )
-	// if err != nil {
-	// 	// panic(err)
-	// }
-	//
-	// fmt.Println("Time to generate: ", time.Since(gTime))
-	// fmt.Printf("%+v\n", gestruct.Get_("Person.P.Other.Name"))
-	// for field := range gestruct.GetFields() {
-	// fmt.Println("Field: ", field)
-	// fmt.Printf(
-	// 	"'%s': dstruct: %+v  goType: %+v\n",
-	// 	field,
-	// 	value.GetDstructType(),
-	// 	value.GetGoType(),
-	// )
-	// }
-
 	generatedStuct := dstruct.NewGeneratedStructWithConfig(
 		Test{Cpoint: new(int)},
 		config.NewDstructConfig().SetSliceLength(3, 3),
 		config.DefaultGenerationSettings(),
 	)
-	gt := &GenInt32Task{}
+	gt := NewGenInt32Task()
 	generator.AddTask(gt)
 	if err := generatedStuct.Set("Person.P", Person{}); err != nil {
 		panic(err)
@@ -171,12 +113,14 @@ func main() {
 		"Person.Value",
 		config.NewDstructConfig().SetIntRange(800, 1000),
 	)
-
-	generatedStuct.SetFieldFromTask("C", gt, 300, 400)
-	// generatedStuct.Update()
+	gti := gt.Instance("20", "30").(*GenInt32TaskInstance)
+	generatedStuct.SetFieldFromTaskInstance("C", gti)
 	generatedStuct.Generate()
 
 	fmt.Printf("%+v\n", generatedStuct)
+	gti.SetParameters("100", "200")
 
-	fmt.Println("Testing task")
+	generatedStuct.Generate()
+
+	fmt.Printf("%+v\n", generatedStuct)
 }

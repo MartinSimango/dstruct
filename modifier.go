@@ -136,17 +136,6 @@ func (dm *DynamicStructModifierImpl) Set(field string, value any) error {
 		return nil
 	}
 
-	// createTree := fieldValue.Kind() == reflect.Pointer && value != nil
-
-	// fmt.Println(
-	// 	"fieldValue: ",
-	// 	f.data.qualifiedName,
-	// 	fieldValue.Kind(),
-	// 	fieldValue.IsZero(),
-	// 	fieldValue.Interface(),
-	// 	createTree,
-	// 	value,
-	// )
 	fieldValue.Set(dreflect.Convert(reflect.ValueOf(value), fieldValue.Type()))
 	dm.update(f)
 

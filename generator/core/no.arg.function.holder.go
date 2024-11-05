@@ -19,6 +19,9 @@ func NewFunctionHolderNoArgs(
 	return &FunctionHolderWithNoArgs{
 		BaseFunctionHolder: BaseFunctionHolder{
 			generationFunction: generationFunction,
+			resetFunction: func(cfg config.Config) generator.GenerationFunction {
+				return generationFunction
+			},
 		},
 	}
 }

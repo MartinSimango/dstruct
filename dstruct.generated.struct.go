@@ -54,7 +54,7 @@ func NewGeneratedStructWithConfig[T any](val T,
 	}
 
 	for _, v := range customTypes {
-		generatedStruct.addCustomType(v)
+		generatedStruct.AddCustomType(v)
 	}
 	generatedStruct.addCustomTypes()
 	generatedStruct.populateGeneratedFields(generatedStruct.root)
@@ -266,24 +266,18 @@ func (gs *DStructGeneratedStruct[T]) SetGenerationFunctions(
 	gs.propagateGenerationFunctions(gs.root, functions)
 }
 
-// SetFieldFromTask implements GeneratedStruct.SetFieldFromTask
-func (gs *DStructGeneratedStruct[T]) SetFieldFromTask(
+// SetFieldFromTaskInstance implements GeneratedStruct.SetFieldFromTaskInstanc
+func (gs *DStructGeneratedStruct[T]) SetFieldFromTaskInstance(
 	field string,
-	task generator.Task,
-	params ...any,
+	taskInstance generator.TaskInstance,
 ) error {
-	taskProperties, err := generator.CreateTaskProperties(
-		field,
-		generator.GetTagForTask(generator.TaskName(task.Name()), params...),
-	)
-	if err != nil {
-		return err
-	}
-
 	gs.SetFieldGenerationFunction(
 		field,
-		core.NewFunctionHolderNoArgs(task.GenerationFunction(*taskProperties)),
+		core.NewFunctionHolderNoArgs(
+			taskInstance.GenerationFunction(),
+		),
 	)
+
 	return nil
 }
 
@@ -334,7 +328,7 @@ func (gs *DStructGeneratedStruct[T]) generateFields() {
 }
 
 func (gs *DStructGeneratedStruct[T]) addCustomTypes() {
-	gs.addCustomType(
+	gs.AddCustomType(
 		CustomType{
 			time.Time{},
 			core.DefaultDateFunctionHolder(gs.structConfig.GenerationConfig.Date()),
@@ -342,7 +336,7 @@ func (gs *DStructGeneratedStruct[T]) addCustomTypes() {
 	)
 }
 
-func (gs *DStructGeneratedStruct[T]) addCustomType(customType CustomType) {
+func (gs *DStructGeneratedStruct[T]) AddCustomType(customType CustomType) {
 	// TODO: restrict some types from being added such as nil, ints etc
 	gs.customTypes[reflect.TypeOf(customType.Value).String()] = customType.FunctionHolder
 	// the function holder kind is the find that the function retrusn which could either be an existing kind or a new kind i.ie time.Time would be a new kind
@@ -368,23 +362,6 @@ func (gs *DStructGeneratedStruct[T]) populateGeneratedFields(node *Node[StructFi
 		if gs.fieldContexts[field.data.qualifiedName] != nil {
 			continue
 		}
-		// fmt.Println(
-		// 	"Field: ",
-		// 	field.data.qualifiedName,
-		// 	field.data.value.Kind(),
-		// 	field.data.ptrDepth,
-		// 	field.data.ptrKind,
-		// 	field.data.IsFieldDereferencable(),
-		// )
-
-		// fmt.Println(
-		// 	"POP: ",
-		// 	field.data.qualifiedName,
-		// 	gs.customTypes,
-		// 	field.data.goType,
-		// 	field.data.dstructType,
-
-		// )
 
 		if customType := gs.customTypes[field.data.goType]; customType != nil {
 			gs.fieldContexts[field.data.qualifiedName] = core.NewGeneratedFieldContext(
