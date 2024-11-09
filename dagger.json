@@ -1,0 +1,11 @@
+{
+  "name": "dstruct",
+  "engineVersion": "v0.13.7",
+  "dependencies": [
+    {
+      "name": "nsv",
+      "source": "github.com/purpleclay/daggerverse/nsv@nsv/v0.10.0",
+      "pin": "dcf4cc7865ada8433f601f728e4a019b68d1fe4e"
+    }
+  ]
+}
