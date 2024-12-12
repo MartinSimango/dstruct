@@ -46,3 +46,9 @@ bench:
 
 task-example:
 	go run examples/task/main.go
+
+
+
+### ACT ###
+act:
+	act -P ubuntu-latest=catthehacker/ubuntu:act-latest

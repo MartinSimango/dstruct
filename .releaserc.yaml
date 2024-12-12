@@ -1,0 +1,15 @@
+branches:
+  - "feat/update-generation-settings"
+plugins:
+  - - "@semantic-release/commit-analyzer"
+    - preset: conventionalcommits
+  - - "@semantic-release/release-notes-generator"
+    - preset: conventionalcommits
+  - "@semantic-release/github"
+  - - "@semantic-release/changelog"
+    - assets:
+        - CHANGELOG.md
+  - - "@semantic-release/git"
+    - assets:
+        - CHANGELOG.md
+tagFormat: ${version}
