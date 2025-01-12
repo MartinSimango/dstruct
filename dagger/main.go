@@ -30,8 +30,9 @@ func (m *Dagger) Release(ctx context.Context, source *dagger.Directory) (string,
 		WithNpm().
 		WithSource(source).
 		Container().
-		WithExec([]string{"npm", "install","-g","@semantic-release/git"}).
-		WithExec([]string{"npx","semantic-release", "--help"}).
+		WithExec([]string{"npm", "install","--save-dev","@semantic-release/git"}).
+		WithExec([]string{"npm","install","--save-dev","@semantic-release/changelog"}).
+		WithExec([]string{"npx","semantic-release"}).
 	Stdout(ctx)
 	
 	// Commands().
