@@ -34,6 +34,7 @@ func (gs *GenerationSettings) WithNonRequiredFields(required bool) GenerationSet
 	return *gs
 }
 
+
 func (gs *GenerationSettings) WithValueGenerationType(
 	valueGenerationType ValueGenerationType,
 ) GenerationSettings {
