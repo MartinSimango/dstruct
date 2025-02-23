@@ -11,7 +11,7 @@ type StructField struct {
 	tag               reflect.StructTag
 	value             reflect.Value
 	dstructType       reflect.Type
-	goType            string
+	typeHash          string
 	pkgPath           string
 	anonymous         bool
 	jsonName          string
@@ -45,9 +45,9 @@ func (f StructField) GetDstructType() reflect.Type {
 	return f.dstructType
 }
 
-// GetGoType returns the Go type of the field.
-func (f StructField) GetGoType() string {
-	return f.goType
+// GetTypeHash returns the hash of the type of the field.
+func (f StructField) GetTypeHash() string {
+	return f.typeHash
 }
 
 // GetQualifiedName returns the fully qualified name of the field.

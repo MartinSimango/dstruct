@@ -50,7 +50,7 @@ type GeneratedField struct {
 	Parent                    *GeneratedField
 	PointerValue              *reflect.Value
 	customTypes               map[string]FunctionHolder
-	goType                    string
+	typeHash                  string
 	currentGenerationFunction generator.GenerationFunction
 }
 
@@ -59,7 +59,7 @@ func NewGeneratedField(fqn string,
 	tag reflect.StructTag,
 	config GeneratedFieldConfig,
 	customTypes map[string]FunctionHolder,
-	goType string,
+	typeHash string,
 ) *GeneratedField {
 	generateField := &GeneratedField{
 		Name:        fqn,
@@ -67,7 +67,7 @@ func NewGeneratedField(fqn string,
 		Tag:         tag,
 		Config:      config,
 		customTypes: customTypes,
-		goType:      goType,
+		typeHash:    typeHash,
 	}
 	// TODO: add custom type to GenerationFunctions
 	if value.Kind() == reflect.Slice {
@@ -93,11 +93,11 @@ func NewGeneratedField(fqn string,
 }
 
 func (field *GeneratedField) IsCustomType() bool {
-	return field.customTypes[field.goType] != nil
+	return field.customTypes[field.typeHash] != nil
 }
 
 func (field *GeneratedField) customTypeFunctionHolder() FunctionHolder {
-	return field.customTypes[field.goType]
+	return field.customTypes[field.typeHash]
 }
 
 func (field *GeneratedField) SetConfig(cfg config.Config) {
@@ -122,7 +122,7 @@ func (field *GeneratedField) SetGenerationFunction(
 	functionHolder FunctionHolder,
 ) {
 	if field.IsCustomType() {
-		field.customTypes[field.goType] = functionHolder
+		field.customTypes[field.typeHash] = functionHolder
 	} else if field.Config.GenerationFunctions[field.Value.Kind()] != nil {
 		field.Tag = reflect.StructTag("") // remove tags to ensure the field is generated with the new function
 		field.Config.GenerationFunctions[field.Value.Kind()] = functionHolder
@@ -167,7 +167,7 @@ func (field *GeneratedField) checkForRecursiveDefinition(fail bool) bool {
 
 func (field *GeneratedField) SetValue() bool {
 	// check if the current field is a custom type with it's own generation function
-	if customType := field.customTypes[field.goType]; customType != nil {
+	if customType := field.customTypes[field.typeHash]; customType != nil {
 		field.Value.Set(reflect.ValueOf(customType.GetFunction().Generate()))
 		return false
 	}
@@ -205,7 +205,7 @@ func (field *GeneratedField) setStructValues() {
 			Config:      field.Config.Copy(field.Value.Field(j).Kind()),
 			Parent:      field,
 			customTypes: field.customTypes,
-			goType:      field.Value.Field(j).Type().Name(),
+			typeHash:    field.Value.Field(j).Type().Name(),
 		}
 		structField.SetValue()
 	}
@@ -219,8 +219,8 @@ func (field *GeneratedField) getGenerationFunction() generator.GenerationFunctio
 	}
 
 	// check if field is a custom type with it's own generation function
-	if field.customTypes[field.goType] != nil {
-		return field.customTypes[field.goType].GetFunction()
+	if field.customTypes[field.typeHash] != nil {
+		return field.customTypes[field.typeHash].GetFunction()
 	}
 
 	kind := field.Value.Kind()

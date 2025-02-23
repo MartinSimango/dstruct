@@ -1,0 +1,24 @@
+name: Release
+
+on:
+  push:
+    branches:
+      - '**'
+
+
+jobs:
+  dagger-go-flow:
+    name: dagger-go-flow
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/Checkout@v3
+      - name: Dagger Go Flow
+        uses: dagger/dagger-for-github@v6
+        with:
+          version: "latest"
+          verb: call
+          module: github.com/felipecruz91/daggerverse/go 
+          args: test --source=. --go-version=1.23 stdout 
+            #args: --help
+

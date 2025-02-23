@@ -1,0 +1,23 @@
+{
+  "name": "dagger",
+  "engineVersion": "v0.15.1",
+  "sdk": "go",
+  "dependencies": [
+    {
+      "name": "node",
+      "source": "github.com/dagger/dagger/sdk/typescript/dev/node",
+      "pin": "180573cf2a1359a7ce371f92a6b6d5fdde62c5a4"
+    },
+    {
+      "name": "goreleaser",
+      "source": "github.com/goreleaser/goreleaser@v2.4.8",
+      "pin": "377981ebd76e1bbb0dbe07d5428239ec8c5381a8"
+    },
+    {
+      "name": "nsv",
+      "source": "github.com/purpleclay/daggerverse/nsv@nsv/v0.10.1",
+      "pin": "424af485b7e79437e0a0f799d083edd3e843128e"
+    }
+  ],
+  "source": "dagger"
+}

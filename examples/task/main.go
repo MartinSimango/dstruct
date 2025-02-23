@@ -99,28 +99,28 @@ type Test struct {
 }
 
 func main() {
-	generatedStuct := dstruct.NewGeneratedStructWithConfig(
+	generatedStruct := dstruct.NewGeneratedStructWithConfig(
 		Test{Cpoint: new(int)},
 		config.NewDstructConfig().SetSliceLength(3, 3),
 		config.DefaultGenerationSettings(),
 	)
 	gt := NewGenInt32Task()
 	generator.AddTask(gt)
-	if err := generatedStuct.Set("Person.P", Person{}); err != nil {
+	if err := generatedStruct.Set("Person.P", Person{}); err != nil {
 		panic(err)
 	}
-	generatedStuct.SetFieldGenerationConfig(
+	generatedStruct.SetFieldGenerationConfig(
 		"Person.Value",
 		config.NewDstructConfig().SetIntRange(800, 1000),
 	)
 	gti := gt.Instance("20", "30").(*GenInt32TaskInstance)
-	generatedStuct.SetFieldFromTaskInstance("C", gti)
-	generatedStuct.Generate()
+	generatedStruct.SetFieldFromTaskInstance("C", gti)
+	generatedStruct.Generate()
 
-	fmt.Printf("%+v\n", generatedStuct)
+	fmt.Printf("%+v\n", generatedStruct)
 	gti.SetParameters("100", "200")
 
-	generatedStuct.Generate()
+	generatedStruct.Generate()
 
-	fmt.Printf("%+v\n", generatedStuct)
+	fmt.Printf("%v\n", generatedStruct)
 }
