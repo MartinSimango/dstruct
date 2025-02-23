@@ -338,7 +338,7 @@ func (gs *DStructGeneratedStruct[T]) addCustomTypes() {
 
 func (gs *DStructGeneratedStruct[T]) AddCustomType(customType CustomType) {
 	// TODO: restrict some types from being added such as nil, ints etc
-	gs.customTypes[reflect.TypeOf(customType.Value).String()] = customType.FunctionHolder
+	gs.customTypes[dreflect.GetTypeHash(customType.Value)] = customType.FunctionHolder
 	// the function holder kind is the find that the function retrusn which could either be an existing kind or a new kind i.ie time.Time would be a new kind
 	// TODO:idea: GenerationsFunction key should be type of CustomKind and not reflect.Kind
 	gs.structConfig.GenerationFunctions[customType.FunctionHolder.Kind()] = customType.FunctionHolder
@@ -353,7 +353,7 @@ func (gs *DStructGeneratedStruct[T]) createGeneratedField(
 		field.data.tag,
 		gs.structConfig.Copy(kind),
 		gs.customTypes,
-		field.data.goType)
+		field.data.typeHash)
 	return v
 }
 
@@ -363,7 +363,7 @@ func (gs *DStructGeneratedStruct[T]) populateGeneratedFields(node *Node[StructFi
 			continue
 		}
 
-		if customType := gs.customTypes[field.data.goType]; customType != nil {
+		if customType := gs.customTypes[field.data.typeHash]; customType != nil {
 			gs.fieldContexts[field.data.qualifiedName] = core.NewGeneratedFieldContext(
 				gs.createGeneratedField(field, customType.Kind()),
 			)
@@ -383,7 +383,7 @@ func (gs *DStructGeneratedStruct[T]) propagateConfig(
 ) {
 	for _, field := range node.children {
 		// Don't propagate changes to children nodes if the field is a custom type
-		if field.HasChildren() && gs.customTypes[field.data.goType] == nil {
+		if field.HasChildren() && gs.customTypes[field.data.typeHash] == nil {
 			gs.propagateConfig(field, cfg)
 		} else {
 			gs.fieldContexts[field.data.qualifiedName].GeneratedField.SetConfig(cfg)
@@ -396,7 +396,7 @@ func (gs *DStructGeneratedStruct[T]) propagateSettings(
 	settings config.GenerationSettings,
 ) {
 	for _, field := range node.children {
-		if field.HasChildren() && gs.customTypes[field.data.goType] == nil {
+		if field.HasChildren() && gs.customTypes[field.data.typeHash] == nil {
 			gs.propagateSettings(field, settings)
 		} else {
 			gs.fieldContexts[field.data.qualifiedName].GeneratedField.SetGenerationSettings(settings)

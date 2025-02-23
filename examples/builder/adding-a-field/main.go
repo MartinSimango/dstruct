@@ -57,7 +57,7 @@ func errorExample_2() {
 	defer examples.RecoverFromPanic()
 	builder := dstruct.NewBuilder().
 		AddField("Person", Person{Name: "Martin", Age: 25, Address: Address{Street: "Jackson Street"}}, `json:"person"`).
-		AddField("Job Titile", "Software Developer", "")
+		AddField("Job Title", "Software Developer", "")
 
-	builder.Build() // This will panic because the field "Job Titile" is an invalid struct field name
+	builder.Build() // This will panic because the field "Job Title" is an invalid struct field name
 }

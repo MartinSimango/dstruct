@@ -29,11 +29,28 @@ type GenerationSettings struct {
 	RecursiveDefinition  RecursiveDefinition
 }
 
+// DefaultGenerationSettings returns a default configuration for generation values.
+func DefaultGenerationSettings() GenerationSettings {
+	return GenerationSettings{
+		ValueGenerationType:  UseDefaults,
+		SetNonRequiredFields: false,
+		RecursiveDefinition: RecursiveDefinition{
+			Allow: false,
+			Depth: 1,
+		},
+	}
+}
+
+// NewGenerationSettings returns a new instance of GenerationSettings.
+func NewGenerationSettings() *GenerationSettings {
+	gs := DefaultGenerationSettings()
+	return &gs
+}
+
 func (gs *GenerationSettings) WithNonRequiredFields(required bool) GenerationSettings {
 	gs.SetNonRequiredFields = required
 	return *gs
 }
-
 
 func (gs *GenerationSettings) WithValueGenerationType(
 	valueGenerationType ValueGenerationType,
@@ -47,16 +64,4 @@ func (gs *GenerationSettings) WithRecursiveDefinition(
 ) GenerationSettings {
 	gs.RecursiveDefinition = recursiveDefinition
 	return *gs
-}
-
-// DefaultGenerationSettings returns a default configuration for generation values.
-func DefaultGenerationSettings() GenerationSettings {
-	return GenerationSettings{
-		ValueGenerationType:  UseDefaults,
-		SetNonRequiredFields: false,
-		RecursiveDefinition: RecursiveDefinition{
-			Allow: false,
-			Depth: 1,
-		},
-	}
 }

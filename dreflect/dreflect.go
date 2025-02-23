@@ -3,10 +3,46 @@
 package dreflect
 
 import (
+	"crypto/sha256"
 	"fmt"
 	"reflect"
 	"unsafe"
 )
+
+// GetTypeHash recursively generates a hash based on struct type
+func GetTypeHash(v interface{}) string {
+	t := reflect.TypeOf(v) // Get type
+
+	// If it's a pointer, dereference
+	if t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
+
+	// Base case: If it's not a struct, just return type name
+	if t.Kind() != reflect.Struct {
+		return t.String()
+	}
+
+	// Construct type signature
+	typeSignature := t.String() + "{"
+	for i := 0; i < t.NumField(); i++ {
+		field := t.Field(i)
+		fieldType := field.Type
+
+		// If field is a struct, recurse
+		if fieldType.Kind() == reflect.Struct {
+			typeSignature += field.Name + ":" + GetTypeHash(
+				reflect.New(fieldType).Elem().Interface(),
+			) + ";"
+		} else {
+			typeSignature += field.Name + ":" + fieldType.String() + ";"
+		}
+	}
+	typeSignature += "}"
+	// Compute SHA-256 hash
+	hash := sha256.Sum256([]byte(typeSignature))
+	return fmt.Sprintf("%x", hash) // Return as hex string
+}
 
 // GetPointerOfValueType returns a pointer to a new value of the same type as the input value `val`.
 // The new value is initialized to the input value.

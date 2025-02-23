@@ -82,25 +82,38 @@ func resetNodeFieldsFQN(node *Node[StructField]) *Node[StructField] {
 }
 
 func (dsb *treeBuilderImpl) AddField(name string, value interface{}, tag string) Builder {
-	if dsb.root.HasChild(name) {
-		panic(fmt.Sprintf("Field '%s' already exists", name))
-	}
-	dsb.root.data.dstructType = dsb.addFieldToTree(
-		name,
-		value,
-		"",
-		false,
-		reflect.StructTag(tag),
-		dsb.root,
-	)
+	dsb.addField(false, name, value, tag, dsb.root)
 	return dsb
 }
 
 func (dsb *treeBuilderImpl) AddEmbeddedField(value interface{}, tag string) Builder {
 	ptrValue, _ := getPtrValue(reflect.ValueOf(value), 0)
 	name := reflect.TypeOf(ptrValue.Interface()).Name()
-	dsb.addFieldToTree(name, value, "", true, reflect.StructTag(tag), dsb.root)
+
+	dsb.addField(true, name, value, tag, dsb.root)
+
 	return dsb
+}
+
+func (dsb *treeBuilderImpl) addField(
+	anonymous bool,
+	name string,
+	value interface{},
+	tag string,
+	root *Node[StructField],
+) {
+	if root.HasChild(name) {
+		panic(fmt.Sprintf("Field '%s' already exists", name))
+	}
+
+	dsb.root.data.dstructType = dsb.addFieldToTree(
+		name,
+		value,
+		"",
+		anonymous,
+		reflect.StructTag(tag),
+		dsb.root,
+	)
 }
 
 func (dsb *treeBuilderImpl) RemoveField(name string) Builder {
@@ -133,9 +146,7 @@ func (dsb *treeBuilderImpl) GetField(field string) Builder {
 		} else if node.data.dstructType.Kind() != reflect.Struct {
 			panic(fmt.Sprintf("Cannot get field '%s' because it is not a struct or does not fully derefence to a struct value", field))
 		}
-		// if node.data.ptrKind != reflect.Struct {
 
-		// node. /
 		return newBuilderFromNode(node, false)
 	}
 	panic(fmt.Sprintf("Field '%s' does not exist", field))
@@ -214,17 +225,12 @@ func (dsb *treeBuilderImpl) addFieldToTree(
 		*root.data.numberOfSubFields++
 	}
 
-	var goType string
-	if goType = tag.Get("goType"); goType == "" {
-		goType = value.Type().Name()
-	}
-
 	field := &StructField{
 		name:        name,
 		value:       value, // this will initally be unaddressable until the struct is built
 		tag:         tag,
 		dstructType: value.Type(),
-		goType:      goType,
+		typeHash:    dreflect.GetTypeHash(typ),
 		pkgPath:     pkgPath,
 		anonymous:   anonymous,
 		jsonName:    strings.Split(tag.Get("json"), ",")[0],
@@ -245,7 +251,9 @@ func (dsb *treeBuilderImpl) addFieldToTree(
 		field.dstructType = dsb.addPtrField(value, root.children[name])
 	}
 
-	return field.dstructType
+	// return field.dstructType
+	// We need to rebuild the stryct to get it's new type as a result of adding a new field
+	return reflect.TypeOf(dsb.Build().Instance())
 }
 
 func sortKeys(root *Node[StructField]) (keys []string) {
@@ -365,14 +373,6 @@ func (dsb *treeBuilderImpl) addStructFields(
 		fieldName := strct.Type().Field(i).Name
 		fieldTag := strct.Type().Field(i).Tag
 
-		if fieldTag.Get("goType") == "" {
-			fieldTag = (reflect.StructTag)(strings.TrimSpace(fmt.Sprintf(
-				"%s goType:\"%s\"",
-				fieldTag,
-				strct.Field(i).Type(),
-			)))
-		}
-
 		var fieldValue any
 		if strct.Type().Field(i).IsExported() {
 			fieldValue = strct.Field(i).Interface()
@@ -398,6 +398,8 @@ func (dsb *treeBuilderImpl) addStructFields(
 		})
 
 	}
+
+	// If the struct is a pointer, we need to create a pointer to the struct
 
 	retStruct := reflect.New(reflect.StructOf(structFields)).Elem()
 	for i := 0; i < ptrDepth; i++ {

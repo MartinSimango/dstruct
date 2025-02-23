@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"reflect"
 
+	"github.com/MartinSimango/dstruct/dreflect"
 	"github.com/MartinSimango/dstruct/generator"
 	"github.com/MartinSimango/dstruct/generator/config"
 )
@@ -40,7 +41,7 @@ func GenerateSliceFunc(
 					Config:      fieldConfig,
 					Parent:      field,
 					customTypes: field.customTypes,
-					goType:      elemValue.Type().Name(),
+					typeHash:    dreflect.GetTypeHash(elemValue.Interface()),
 				}
 
 				newField.SetValue()
