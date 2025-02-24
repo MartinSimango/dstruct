@@ -1,4 +1,4 @@
-## [0.1.0](https://github.com/MartinSimango/dstruct/compare/v0.0.1...0.1.0) (2025-02-24)
+## [0.1.0](https://github.com/MartinSimango/dstruct/compare/v0.0.1...v0.1.0) (2025-02-24)
 
 ### Features
 
