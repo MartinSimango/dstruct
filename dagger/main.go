@@ -21,17 +21,19 @@ import (
 
 type Dagger struct{}
 
-// Returns a container that echoes whatever string argument is provided
-func (m *Dagger) Release(ctx context.Context, source *dagger.Directory) (string, error){
+// Release a new version of the project
+func (m *Dagger) Release(ctx context.Context, source *dagger.Directory, token *dagger.Secret) (string, error){
 	
 
 	return dag.Node(dagger.NodeOpts{
-		Version: "21"}).
+		Version: "23.7.0"}).
 		WithNpm().
 		WithSource(source).
 		Container().
+		WithSecretVariable("GITHUB_TOKEN", token).
 		WithExec([]string{"npm", "install","--save-dev","@semantic-release/git"}).
 		WithExec([]string{"npm","install","--save-dev","@semantic-release/changelog"}).
+		WithExec([]string{"npm","install","--save-dev","conventional-changelog-conventionalcommits"}).
 		WithExec([]string{"npx","semantic-release"}).
 	Stdout(ctx)
 	

@@ -1,5 +1,5 @@
 branches:
-  - "feat/update-generation-settings"
+  - "main"
 plugins:
   - - "@semantic-release/commit-analyzer"
     - preset: conventionalcommits
@@ -12,4 +12,4 @@ plugins:
   - - "@semantic-release/git"
     - assets:
         - CHANGELOG.md
-tagFormat: ${version}
+tagFormat: "v${version}"
