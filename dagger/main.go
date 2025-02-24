@@ -21,10 +21,14 @@ import (
 
 type Dagger struct{}
 
+
+
+
+
+
 // Release a new version of the project
 func (m *Dagger) Release(ctx context.Context, source *dagger.Directory, token *dagger.Secret) (string, error){
 	
-
 	return dag.Node(dagger.NodeOpts{
 		Version: "23.7.0"}).
 		WithNpm().
@@ -37,22 +41,22 @@ func (m *Dagger) Release(ctx context.Context, source *dagger.Directory, token *d
 		WithExec([]string{"npx","semantic-release"}).
 	Stdout(ctx)
 	
-	// Commands().
-	// Run([]string{"npx", "semantic-release", "--version"}).
-  // Stdout(ctx)
-
-
-
-	// version, err := dag.Nsv(source).Next(ctx, dagger.NsvNextOpts{Show: true}) 
-	// if  err != nil {
-	// 	return "", err
-	// }
-	//
-	// fmt.Println("Version: ", version)
-	//
-	// return dag.Goreleaser(dagger.GoreleaserOpts{Source: source}).Test().Output(ctx)
-
-
-	
 
 }
+
+// Test the project
+func (m	*Dagger) Test(ctx context.Context, source *dagger.Directory) (string,error){
+	return dag.GoDagger().Test(source, dagger.GoDaggerTestOpts{
+		GoVersion: "1.23",
+	}).Stdout(ctx)
+
+}
+
+func (m *Dagger) TestAndRelease(ctx context.Context, source *dagger.Directory, token *dagger.Secret) (string, error){
+	_, err := m.Test(ctx, source)
+	if err != nil {
+		return "", err
+	}
+	return m.Release(ctx, source, token)
+}
+
