@@ -5,6 +5,9 @@ on:
     branches:
       - 'main'
 
+permissions:
+  contents: write
+
 jobs:
   dagger-go-flow:
     name: dagger-go-flow
