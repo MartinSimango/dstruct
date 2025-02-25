@@ -15,10 +15,10 @@ jobs:
       - name: Dagger Go Flow
         uses: dagger/dagger-for-github@v7
         env:
-          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           version: "latest"
           verb: call 
           module: dagger
-          args: test-and-release --source=. --token=env://GITHUB_TOKEN
+          args: test-and-release --source=. --token=env://GH_TOKEN
 
