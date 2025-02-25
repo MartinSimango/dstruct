@@ -38,7 +38,7 @@ func (m *Dagger) Release(
 		WithExec([]string{"npm", "install", "--save-dev", "@semantic-release/git"}).
 		WithExec([]string{"npm", "install", "--save-dev", "@semantic-release/changelog"}).
 		WithExec([]string{"npm", "install", "--save-dev", "conventional-changelog-conventionalcommits"}).
-		WithExec([]string{"npx", "semantic-release", "--dry-run"}).
+		WithExec([]string{"npx", "semantic-release", "--no-ci"}).
 		Stdout(ctx)
 }
 
