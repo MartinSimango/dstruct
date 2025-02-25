@@ -14,8 +14,11 @@ jobs:
         uses: actions/Checkout@v3
       - name: Dagger Go Flow
         uses: dagger/dagger-for-github@v7
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           version: "latest"
           verb: call 
-          args: test-and-release --source=. --token= ${{ secrets.GH_TOKEN }}
+          module: dagger
+          args: test-and-release --source=. --token=env://GITHUB_TOKEN
 

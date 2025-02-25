@@ -16,47 +16,48 @@ package main
 
 import (
 	"context"
+
 	"dagger/dagger/internal/dagger"
 )
 
 type Dagger struct{}
 
-
-
-
-
-
 // Release a new version of the project
-func (m *Dagger) Release(ctx context.Context, source *dagger.Directory, token *dagger.Secret) (string, error){
-	
+func (m *Dagger) Release(
+	ctx context.Context,
+	source *dagger.Directory,
+	token *dagger.Secret,
+) (string, error) {
 	return dag.Node(dagger.NodeOpts{
-		Version: "23.7.0"}).
+		Version: "23.7.0",
+	}).
 		WithNpm().
 		WithSource(source).
 		Container().
 		WithSecretVariable("GITHUB_TOKEN", token).
-		WithExec([]string{"npm", "install","--save-dev","@semantic-release/git"}).
-		WithExec([]string{"npm","install","--save-dev","@semantic-release/changelog"}).
-		WithExec([]string{"npm","install","--save-dev","conventional-changelog-conventionalcommits"}).
-		WithExec([]string{"npx","semantic-release"}).
-	Stdout(ctx)
-	
-
+		WithExec([]string{"npm", "install", "--save-dev", "@semantic-release/git"}).
+		WithExec([]string{"npm", "install", "--save-dev", "@semantic-release/changelog"}).
+		WithExec([]string{"npm", "install", "--save-dev", "conventional-changelog-conventionalcommits"}).
+		WithExec([]string{"npx", "semantic-release"}).
+		Stdout(ctx)
 }
 
 // Test the project
-func (m	*Dagger) Test(ctx context.Context, source *dagger.Directory) (string,error){
+func (m *Dagger) Test(ctx context.Context, source *dagger.Directory) (string, error) {
 	return dag.GoDagger().Test(source, dagger.GoDaggerTestOpts{
 		GoVersion: "1.23",
 	}).Stdout(ctx)
-
 }
 
-func (m *Dagger) TestAndRelease(ctx context.Context, source *dagger.Directory, token *dagger.Secret) (string, error){
+// Test and release the project
+func (m *Dagger) TestAndRelease(
+	ctx context.Context,
+	source *dagger.Directory,
+	token *dagger.Secret,
+) (string, error) {
 	_, err := m.Test(ctx, source)
 	if err != nil {
 		return "", err
 	}
 	return m.Release(ctx, source, token)
 }
-
