@@ -34,8 +34,7 @@ func (m *Dagger) Release(
 		WithNpm().
 		WithSource(source).
 		Container().
-		// WithSecretVariable("GITHUB_TOKEN", token).
-		WithExec([]string{"env"}).
+		WithSecretVariable("GITHUB_TOKEN", token).
 		WithExec([]string{"npm", "install", "--save-dev", "@semantic-release/git"}).
 		WithExec([]string{"npm", "install", "--save-dev", "@semantic-release/changelog"}).
 		WithExec([]string{"npm", "install", "--save-dev", "conventional-changelog-conventionalcommits"}).
