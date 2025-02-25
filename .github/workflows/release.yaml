@@ -15,7 +15,7 @@ jobs:
       - name: Dagger Go Flow
         uses: dagger/dagger-for-github@v7
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
         with:
           version: "latest"
           verb: call 
