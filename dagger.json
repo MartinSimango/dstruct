@@ -4,17 +4,6 @@
   "sdk": {
     "source": "go"
   },
-  "dependencies": [
-    {
-      "name": "go-dagger",
-      "source": "github.com/felipecruz91/daggerverse/go",
-      "pin": "812413ffa7ed126d04dee7be21e9cda1a815e618"
-    },
-    {
-      "name": "node",
-      "source": "github.com/dagger/dagger/sdk/typescript/dev/node",
-      "pin": "180573cf2a1359a7ce371f92a6b6d5fdde62c5a4"
-    }
-  ],
+   
   "source": "dagger"
 }

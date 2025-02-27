@@ -39,7 +39,7 @@ extend or merge structs which have struct fields of type `any` their value must 
 ## Install
 
 ```sh
-go get github.com/MartinSimango/dstruct@v0.5.0-beta
+go get github.com/MartinSimango/dstruct@v0.6.0
 ```
 
 ## How it works?

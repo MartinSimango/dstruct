@@ -28,25 +28,31 @@ func (m *Dagger) Release(
 	source *dagger.Directory,
 	token *dagger.Secret,
 ) (string, error) {
-	return dag.Node(dagger.NodeOpts{
-		Version: "23.7.0",
-	}).
-		WithNpm().
-		WithSource(source).
-		Container().
+	return dag.Container().
+		From("node:23.7.0").
+		WithDirectory("/src", source).
+		WithWorkdir("/src").
+		WithMountedCache("/root/.npm", dag.CacheVolume("node-23")).
 		WithSecretVariable("GITHUB_TOKEN", token).
 		WithExec([]string{"npm", "install", "--save-dev", "@semantic-release/git"}).
 		WithExec([]string{"npm", "install", "--save-dev", "@semantic-release/changelog"}).
 		WithExec([]string{"npm", "install", "--save-dev", "conventional-changelog-conventionalcommits"}).
-		WithExec([]string{"npx", "semantic-release", "--no-ci"}).
+		WithExec([]string{"npx", "semantic-release", "--dry--run"}).
 		Stdout(ctx)
 }
 
 // Test the project
 func (m *Dagger) Test(ctx context.Context, source *dagger.Directory) (string, error) {
-	return dag.GoDagger().Test(source, dagger.GoDaggerTestOpts{
-		GoVersion: "1.23",
-	}).Stdout(ctx)
+	return dag.Container().
+		From("golang:1.24").
+		WithDirectory("/src", source).
+		WithWorkdir("/src").
+		WithMountedCache("/go/pkg/mod", dag.CacheVolume("go-mod-124")).
+		WithEnvVariable("GOMODCACHE", "/go/pkg/mod").
+		WithMountedCache("/go/build-cache", dag.CacheVolume("go-build-124")).
+		WithEnvVariable("GOCACHE", "/go/build-cache").
+		WithExec([]string{"go", "test", "./..."}).
+		Stdout(ctx)
 }
 
 // Test and release the project
