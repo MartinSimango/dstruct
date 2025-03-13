@@ -1,3 +1,10 @@
+## [0.7.0](https://github.com/MartinSimango/dstruct/compare/v0.6.0...v0.7.0) (2025-03-13)
+
+### Features
+
+* update pipeline ([07fe3f5](https://github.com/MartinSimango/dstruct/commit/07fe3f53b54b2abf864da36e239a5f52dc499142))
+* update pipeline ([126be70](https://github.com/MartinSimango/dstruct/commit/126be70cd88804e1234dcbd24f08637404215230))
+
 ## [0.6.0](https://github.com/MartinSimango/dstruct/compare/v0.5.0...v0.6.0) (2025-02-26)
 
 ### Features
