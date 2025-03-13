@@ -9,21 +9,22 @@ permissions:
   contents: write
 
 jobs:
-  dagger-go-flow:
-    name: dagger-go-flow
+  release:
+    name: Release
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/Checkout@v4
-      - name: Dagger Go Flow
-        uses: dagger/dagger-for-github@v7
+      - name: Release
+        uses: dagger/dagger-for-github@8.0.0
         env:
           GITHUB_TOKEN: ${{ secrets.GH_TOKEN }}
+          GPG_KEY: ${{ secrets.GPG_KEY }}
+          GPG_KEY_ID: ${{ vars.GPG_KEY_ID }}
         with:
-          version: "latest"
+          version: "v0.16.3"
           verb: call 
-          module: dagger
-          args: test-and-release --source=. --token=env://GITHUB_TOKEN
+          module: github.com/MartinSimango/daggerverse/gopkg@v0.3.0 
+          args: "with-git-gpg-config --gpg-key=env://GPG_KEY --gpg-key-id=env://GPG_KEY_ID --git-author-name \"semantic-release-bot\" --git-author-email \"shukomango@gmail.com\" gopkg-flow --source=. --dry-run=false --token=env://GITHUB_TOKEN"
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
-
 
