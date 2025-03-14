@@ -11,7 +11,7 @@ retract (
 )
 
 require (
-	github.com/stretchr/testify v1.8.1
+	github.com/stretchr/testify v1.10.0
 	github.com/takahiromiyamoto/go-xeger v0.0.0-20190630230347-fd0b7a1d9283
 )
 
