@@ -1,6 +1,6 @@
 > :warning: **Notice**
 > * Please do not install any of these versions: v1.1.1 v1.1.0 v1.0.0 v0.1.2 v0.1.1 as these were removed from the repo - (but are still available at pkg.go.dev).
-> * When installing please explicitly install the actual latest version of dstruct which is currently v0.6.0.
+> * When installing please explicitly install the actual latest version of dstruct which is currently v0.7.0.
 
 
 # dstruct
