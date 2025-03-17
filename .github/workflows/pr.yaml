@@ -1,4 +1,4 @@
-name: Check PR title
+name: PR
 
 on:
   pull_request:
@@ -9,7 +9,7 @@ on:
       - synchronize
 
 jobs:
-  lint:
+  pr-title-check:
     runs-on: ubuntu-latest
     permissions:
       statuses: write
@@ -17,17 +17,25 @@ jobs:
       - uses: aslafy-z/conventional-pr-title-action@v3
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-  test:
+  code-quality:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/Checkout@v4
-      - name: Release
+      - name: Lint
         uses: dagger/dagger-for-github@8.0.0
         with:
           version: "v0.16.3"
           verb: call 
-          module: github.com/MartinSimango/daggerverse/gopkg@v0.3.0 
+          module: github.com/MartinSimango/daggerverse/gopkg@v0.4.0 
+          args: "lint --source=."
+          cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
+      - name: Test
+        uses: dagger/dagger-for-github@8.0.0
+        with:
+          version: "v0.16.3"
+          verb: call 
+          module: github.com/MartinSimango/daggerverse/gopkg@v0.4.0 
           args: "test --source=."
           cloud-token: ${{ secrets.DAGGER_CLOUD_TOKEN }}
   
