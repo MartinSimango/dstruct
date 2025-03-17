@@ -30,7 +30,7 @@ func TestExtend(t *testing.T) {
 	}
 
 	type testStructEmbedded struct {
-		age  int `json:"Age"`
+		age  int
 		name string
 		Embedded
 	}
